@@ -72,6 +72,8 @@ bundle patch（`cordis.patch.yml`）声明的加载器条目是 `id: soul`。这
 
 它返回 `{version: 1, …}`；版本对不上按「不可用」处理，不去猜。
 
+设置卡是手写的 ModuleLoader bundle，样式全部取自宿主主题变量（`--dsw-alias-*`、`--dsw-radius-*`、`--dsw-focus-ring-*`），没有一个写死的颜色，所以明暗主题都不用兜底表。类名统一 `__sl_` 前缀：和别的插件共用类名，会让后加载的那个把前一个的样式也改掉。开关优先用宿主自带的 `Switch`（需要能 `require` 到 `@deepseek-ai/dsh-client-ui-primitives`），拿不到就渲染一个行为等价的自绘开关——手写 bundle 不能指望那个模块一定可 require。所有控件都是立刻写入，一个动作一批操作：不做整页保存栏，因为卡片列表上的草稿编辑器会把用户的意图弄丢。
+
 ## 开发
 
 ```bash

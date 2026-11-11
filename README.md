@@ -72,6 +72,8 @@ One same-origin `POST` endpoint backs the settings card. Exact `/api` routes byp
 
 It answers `{version: 1, …}`; a version mismatch is treated as "unavailable" rather than guessed at.
 
+The settings card is a hand-written ModuleLoader bundle that styles itself from host theme tokens (`--dsw-alias-*`, `--dsw-radius-*`, `--dsw-focus-ring-*`) with no literal colours, so light and dark themes both work without a fallback table. Its classes are all `__sl_*`: sharing names with another plugin would let whichever loads last restyle the other. The switch prefers the host's own `Switch` when `@deepseek-ai/dsh-client-ui-primitives` is requireable and otherwise renders an element-equivalent one, because a hand-written bundle cannot count on that module. Every control writes immediately, in one batch per action — there is no page-level save bar, since a draft editor over a card list would lose the user's intent.
+
 ## Development
 
 ```bash
