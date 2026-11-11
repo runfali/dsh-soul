@@ -62,6 +62,8 @@ Open the settings card and press **读取 soul-md 的卡片 / Read soul-md cards
 
 The old namespace is only ever read. Nothing is deleted there, the old plugin keeps working, and you can re-run the import as often as you like.
 
+**While both plugins are enabled, the old one keeps injecting its own persona** — different section name, same job — so with cards on both sides the prompt carries two personas at once. Once the copy looks right, clear the old default card (or disable `dsh-soul-md`). This plugin never disables it for you, and never writes to its namespace.
+
 ## Compatibility
 
 - dsh `>=0.2.0-rc.2 <0.3.0-0`, with `0.2.1-rc.1` … `0.2.1-rc.5` listed individually in `dsh.compatibility`

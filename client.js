@@ -135,6 +135,7 @@ window.__ModuleLoader__.load({
 
       importTitle: "从 soul-md 导入",
       importHint: "只读取旧的 soul-md 设置里的卡片，复制到本插件；同名卡保留现在的内容，不覆盖。",
+      importCoexistHint: "旧插件如果还开着，它的人设会继续注入：两边都留着卡片时，提示词里会同时出现两段人设。迁移完把它的人设清空或停用旧插件。",
       importButton: "读取 soul-md 的卡片",
       importScanning: "正在读取…",
       importFound: "找到这些卡片（点一下复制过来）",
@@ -199,6 +200,7 @@ window.__ModuleLoader__.load({
 
       importTitle: "Import from soul-md",
       importHint: "Reads the cards in the old soul-md settings and copies them here. A card that already exists keeps the content you have.",
+      importCoexistHint: "The old plugin, if still enabled, keeps injecting its own persona: with cards on both sides the prompt carries two personas. Once the migration is done, clear its default or disable it.",
       importButton: "Read soul-md cards",
       importScanning: "Reading…",
       importFound: "Cards found (click to copy them over)",
@@ -895,6 +897,7 @@ window.__ModuleLoader__.load({
         h("fieldset", { className: "__sl_group", disabled: busyGroup === "import" || importBusy, style: { border: 0, margin: 0, padding: 0, minWidth: 0 } },
           h("p", { className: "__sl_label", style: { margin: 0 } }, t("importTitle")),
           h("p", { className: "__sl_hint", style: { margin: 0 } }, t("importHint")),
+          h("p", { className: "__sl_hint", style: { margin: 0 } }, t("importCoexistHint")),
           h("div", { className: "__sl_actions" },
             h("button", { type: "button", className: "__sl_btn", onClick: scanImport, disabled: busy }, importBusy ? t("importScanning") : t("importButton")),
             importScan ? h("span", { className: "__sl_row" },
