@@ -168,10 +168,14 @@ function apply(ctx, config) {
             source: { type: "string" },
           },
         },
+        // `source` is rendered rather than only declared: a field the render
+        // drops never reaches the model, so it would be a dead column of the
+        // schema. Knowing WHY this card is active is what lets the model explain
+        // the choice (a session override outranks the workspace mapping).
         render: (_args, value) => [{
           type: "text",
           text: value.exists
-            ? `Persona card "${value.persona}":\n${value.content}`
+            ? `Persona card "${value.persona}"${value.source ? ` (${value.source})` : ""}:\n${value.content}`
             : "No persona card is active for this session.",
         }],
       },

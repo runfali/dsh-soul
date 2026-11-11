@@ -158,6 +158,8 @@ select.__sl_input{appearance:none;padding-right:30px;background-image:url("data:
       invalidCardContent: "请输入卡片内容",
       reservedCardName: "这个名称是 JavaScript 的保留属性名（如 __proto__、constructor），用作卡名会被吞掉，请换一个",
       cardExists: "已存在同名人设卡；改名会覆盖它，请先删除或换个名字",
+      cardTaken: "已存在同名人设卡；新建会覆盖它，请换个名字，或用那张卡的「编辑」",
+      cardInBaseLayer: "已从设置里删除，但它来自宿主配置层（cordis.patch.yml 的 config），设置页删不掉",
 
       workspaceTitle: "按工作区指定人设",
       workspaceHint: "打开某个工作区的会话时，优先用它指定的卡。单个会话的选择仍然优先于这里。",
@@ -210,6 +212,8 @@ select.__sl_input{appearance:none;padding-right:30px;background-image:url("data:
       invalidCardContent: "Enter card content",
       reservedCardName: "This name is a JavaScript prototype property (__proto__, constructor, …) and would be swallowed — pick another",
       cardExists: "A card with that name already exists; renaming would overwrite it, so delete it first or pick another name",
+      cardTaken: "A card with that name already exists; creating would overwrite it — pick another name, or edit that card",
+      cardInBaseLayer: "Removed from these settings, but the card comes from the host configuration layer (a `config: {cards: …}` row) and cannot be deleted here",
 
       workspaceTitle: "Persona per workspace",
       workspaceHint: "A session opened in this workspace uses the card chosen here. A per-session choice still wins.",
@@ -275,7 +279,10 @@ select.__sl_input{appearance:none;padding-right:30px;background-image:url("data:
     function cardPreview(text) {
       var line = String(text || "").split(/\r?\n/).filter(function (part) { return part.trim() !== ""; })[0] || "";
       line = line.trim();
-      return line.length > 64 ? line.slice(0, 64) + "…" : line;
+      // Slice by CODE POINT, not by UTF-16 unit: `slice(0, 64)` can cut an
+      // emoji's surrogate pair in half and the row renders a lone surrogate.
+      var chars = Array.from(line);
+      return chars.length > 64 ? chars.slice(0, 64).join("") + "…" : line;
     }
 
     /**
@@ -611,15 +618,21 @@ select.__sl_input{appearance:none;padding-right:30px;background-image:url("data:
         if (typeof fetch !== "function") return;
         postJson(WORKSPACES_URL, {}).then(function (result) {
           if (!wsAlive.current) return;
-          // A payload this build cannot read is not an empty list: rendering
-          // "you have no workspaces" over a mapping the user already made hides
-          // it and leaves it uneditable.
-          if (result.status === "ready" && Array.isArray(result.payload.workspaces)) {
+          // A list this build cannot read is NOT an empty list. `ok: false` means
+          // the host could not answer (no registry, or not ready yet) and another
+          // wire version is equally unreadable; rendering "you have no workspaces"
+          // over a mapping the user already made would hide it and leave it
+          // uneditable.
+          if (result.status === "ready" && result.payload.ok !== false && Array.isArray(result.payload.workspaces)) {
             setWsOptions(result.payload.workspaces);
             setWsFailed(false);
             return;
           }
           setWsFailed(true);
+        }).catch(function () {
+          // postJson maps its own failures; this only keeps a throw inside the
+          // handler above from becoming an unhandled rejection.
+          if (wsAlive.current) setWsFailed(true);
         });
       }
       react.useEffect(function () {
@@ -696,9 +709,16 @@ select.__sl_input{appearance:none;padding-right:30px;background-image:url("data:
       var wsList = Array.isArray(wsOptions) ? wsOptions : [];
       var listed = {};
       wsList.forEach(function (entry) { if (entry && typeof entry.path === "string") listed[entry.path] = true; });
-      // A mapping whose workspace has been deleted is invisible in a registry-
-      // driven list, so it could never be cleared again.
-      var staleKeys = Object.keys(wsMap).filter(function (key) { return !listed[key]; });
+      // A mapping whose workspace was deleted is invisible in a registry-driven
+      // list, so it could never be cleared again — it is listed explicitly. But
+      // only a list that really arrived can call a mapping stale: while the read
+      // is pending or failed, a saved mapping still has to be VISIBLE and
+      // editable — dropping it from the tree would hide the user's own choice —
+      // so it renders as an ordinary row without the "gone" badge.
+      var wsKnown = Array.isArray(wsOptions) && !wsFailed;
+      var unmapped = Object.keys(wsMap).filter(function (key) { return !listed[key]; });
+      var staleKeys = wsKnown ? unmapped : [];
+      var unplacedKeys = wsKnown ? [] : unmapped;
 
       function onSaveCard() {
         var nextName = String(cardDraft.name || "").trim();
@@ -706,10 +726,21 @@ select.__sl_input{appearance:none;padding-right:30px;background-image:url("data:
         if (!nextName) { setError({ key: "error", detailKey: "invalidCardName", group: "cards" }); return; }
         if (reservedName(nextName)) { setError({ key: "error", detailKey: "reservedCardName", group: "cards" }); return; }
         if (!content.trim()) { setError({ key: "error", detailKey: "invalidCardContent", group: "cards" }); return; }
-        // Renaming an edited card onto an existing one would overwrite that card
-        // with no backup (the card is user-owned; nothing else keeps a copy).
-        if (editing && editing !== nextName && Object.hasOwn(cards, nextName)) {
-          setError({ key: "error", detailKey: "cardExists", detail: nextName, group: "cards" });
+        // Overwriting a card destroys user text with no backup — nothing else
+        // keeps a copy. That is true when RENAMING onto an existing name and
+        // equally true when CREATING under one: both go through the same write.
+        // A BLANK card is not protected: it has nothing to lose, and a blank card
+        // is invisible in the list, so refusing here would leave the user with a
+        // name that collides and no row to edit.
+        var existing = Object.hasOwn(cards, nextName) ? cards[nextName] : null;
+        var wouldOverwrite = typeof existing === "string" && existing.trim() !== "";
+        if (editing !== nextName && wouldOverwrite) {
+          setError({
+            key: "error",
+            detailKey: editing ? "cardExists" : "cardTaken",
+            detail: nextName,
+            group: "cards",
+          });
           return;
         }
         var ops = [{ op: "set", path: ["cards", nextName], value: content }];
@@ -756,7 +787,14 @@ select.__sl_input{appearance:none;padding-right:30px;background-image:url("data:
         // could be refused for a revision the first had just superseded.
         var ops = [{ op: "unset", path: ["cards", cardName] }];
         if (cardName === active) ops.push({ op: "unset", path: ["active"] });
-        runWrite(ops, null, "cards");
+        runWrite(ops, function () {
+          // The unset only removes the USER layer; a card that the composition
+          // itself declares (a hand-written `config: {cards: …}` row) survives and
+          // would look "still there" after a reported success. Say why instead of
+          // letting the user click delete forever.
+          var after = plainObject(plainObject(scope.getSnapshot().value).cards);
+          if (Object.hasOwn(after, cardName)) setNotice({ key: "cardInBaseLayer", group: "cards" });
+        }, "cards");
       }
 
       function onSetActive(cardName) {
@@ -931,6 +969,7 @@ select.__sl_input{appearance:none;padding-right:30px;background-image:url("data:
                   : null,
             h("div", { className: "__sl_cardList" },
               wsList.map(function (entry) { return renderWsRow(entry.path, entry.title, false); }),
+              unplacedKeys.map(function (path) { return renderWsRow(path, "", false); }),
               staleKeys.map(function (path) { return renderWsRow(path, "", true); })
             ),
             h("div", { className: "__sl_actions" },
@@ -1010,7 +1049,9 @@ select.__sl_input{appearance:none;padding-right:30px;background-image:url("data:
 
     module.exports = exports;
     exports.apply = apply;
-    exports.inject = inject;    /**
+    exports.inject = inject;
+
+    /**
      * Test seam only. The settings write path is the one place where a wrong
      * answer corrupts the user's cards, and these helpers are inside a
      * ModuleLoader closure with no other way to reach them. Nothing in the host

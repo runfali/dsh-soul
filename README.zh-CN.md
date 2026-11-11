@@ -64,7 +64,7 @@ bundle patch（`cordis.patch.yml`）声明的加载器条目是 `id: soul`。这
 
 ## 值得知道的内部细节
 
-设置卡背后是一个同源 `POST` 接口。`/api` 下的精确路由不过宿主的围栏，所以它们自己做检查：非 JSON 请求 `415`，跨站 `Origin`（包括 `Origin: null`）`403`。没有 `Origin` 头的同源调用放行——桌面端就是这么发的。
+设置卡背后是一个同源 `POST` 接口。`/api` 下的精确路由不过宿主的围栏，所以它们自己做检查：非 JSON 请求 `415`，跨站 `Origin`（包括 `Origin: null`，以及 `Sec-Fetch-Site` 声明跨站）`403`。判定同源用的是 `Origin` 的 host 与请求的 `Host` 头比较——**不是**与 `request.url` 比较：宿主在把请求交给路由之前会把 URL 重写成 `http://dsh.internal` 这个合成基址，拿 URL 比会把每一次真实调用都拒掉。完全没有 `Origin` 头的调用放行，那是本地脚本或桌面端的发法。
 
 | 路由 | 用途 |
 | --- | --- |
@@ -81,7 +81,7 @@ npm install --cache ./.npm-cache    # 本地缓存，避免沙箱去写 %LOCALAP
 npm test
 ```
 
-`npm test` 在同一个进程里跑 100 个测试（`--experimental-test-isolation=none`：受限沙箱里测试运行器 fork 子进程会失败）：
+`npm test` 在同一个进程里跑 110 个测试（`--experimental-test-isolation=none`：受限沙箱里测试运行器 fork 子进程会失败）：
 
 - `persona.test.mjs` —— 解析顺序、`none` 哨兵值、过期与空白选择、路径规范化、子会话门
 - `routes.test.mjs` —— 请求守卫（415 / 403 / 同源）、构建失败、版本信封

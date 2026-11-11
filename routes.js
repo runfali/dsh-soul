@@ -1,5 +1,5 @@
 /**
- * Two read-only HTTP endpoints for dsh-soul, plus the access check they need.
+ * The read-only HTTP endpoint of dsh-soul, plus the access check it needs.
  *
  * WHY A HAND-WRITTEN CHECK: `/api` exact routes registered through
  * `connection.fetch` do NOT pass the host's own fence or browser-auth gate, so
@@ -12,7 +12,13 @@
  *     POST — and it is why the client always sends application/json.
  *   - a cross-site `Origin` is refused with 403, and `Origin: null` too (a
  *     sandboxed iframe or a file:// page). Same-origin fetches send an Origin
- *     header in Chromium, so an attacker's page cannot omit it.
+ *     header in Chromium, so an attacker's page cannot omit it. Same-origin is
+ *     judged against the request's `Host` header, NOT against `request.url`: the
+ *     host bridges every HTTP request through a synthetic base URL (see
+ *     `bridge()` in @deepseek-ai/dsh-client-connection, which does
+ *     `new Request(new URL(req.url, "http://dsh.internal"), …)`), so a route
+ *     handler always sees `http://dsh.internal/...` no matter which origin the
+ *     browser used. Comparing those two origins refuses every legitimate call.
  *   - `Sec-Fetch-Site` is refused when it says cross-site / same-site. It is
  *     browser-supplied and cannot be forged by page script.
  *
@@ -48,11 +54,10 @@ function headerOf(request, name) {
   return headers.get(name);
 }
 
-/** The origin of an absolute URL, or null when it is relative/unparseable. */
-function originOf(value) {
+/** Absolute URL or null; a relative/garbage value must not throw past the check. */
+function parseUrl(value) {
   try {
-    const url = new URL(String(value));
-    return url.origin;
+    return new URL(String(value));
   } catch {
     return null;
   }
@@ -64,8 +69,10 @@ function originOf(value) {
  * Pure and exported so the test suite can assert every branch without a socket.
  */
 export function requestRefusal(request) {
-  const type = String(headerOf(request, "content-type") ?? "").toLowerCase();
-  if (!type.startsWith(JSON_TYPE)) return { status: 415, error: "expected a JSON request body" };
+  // Split off the parameters and compare the WHOLE type: `startsWith` accepts
+  // `application/jsonscript`, which is not a JSON body at all.
+  const type = String(headerOf(request, "content-type") ?? "").split(";", 1)[0].trim().toLowerCase();
+  if (type !== JSON_TYPE) return { status: 415, error: "expected a JSON request body" };
 
   const site = String(headerOf(request, "sec-fetch-site") ?? "").toLowerCase();
   if (site !== "" && site !== "same-origin" && site !== "none") return { status: 403, error: REFUSED };
@@ -75,8 +82,13 @@ export function requestRefusal(request) {
   if (origin !== null) {
     const claimed = String(origin).trim();
     if (claimed === "" || claimed === "null") return { status: 403, error: REFUSED };
-    const target = originOf(request?.url);
-    if (target === null || originOf(claimed) !== target) return { status: 403, error: REFUSED };
+    // Same-origin means "the Origin names the very host the browser addressed",
+    // which only the Host header can answer — `request.url` is the bridge's
+    // synthetic base (http://dsh.internal), never the browser's origin.
+    const host = String(headerOf(request, "host") ?? "").trim().toLowerCase();
+    if (host === "") return { status: 403, error: REFUSED };
+    const claimedUrl = parseUrl(claimed);
+    if (claimedUrl === null || claimedUrl.host.toLowerCase() !== host) return { status: 403, error: REFUSED };
   }
   return null;
 }
@@ -121,16 +133,28 @@ export function registerJsonRoute(ctx, { path, build, label }) {
       return jsonBody({ version: ROUTE_VERSION, error: oneLine(error) }, 500);
     }
   };
-  ctx.inject(["connection"], (scoped) => {
-    const register = scoped?.connection?.fetch?.register;
-    if (typeof register !== "function") {
-      warn(ctx, `dsh-soul: ${path} not registered (connection.fetch.register is missing)`);
-      return;
-    }
-    scoped.effect(
-      () => scoped.connection.fetch.register({ path, methods: ["POST"], requestBody: "buffered", fetch: handler }),
-      label ?? `dsh-soul: ${path}`,
-    );
-  });
+  // Registering must never be able to fail `apply`: a host that refuses the
+  // route (older instance, duplicate path, a settled scope) should cost the
+  // settings card one "unavailable" line, not the persona section and the tool.
+  try {
+    ctx.inject(["connection"], (scoped) => {
+      try {
+        const register = scoped?.connection?.fetch?.register;
+        if (typeof register !== "function") {
+          warn(ctx, `dsh-soul: ${path} not registered (connection.fetch.register is missing)`);
+          return;
+        }
+        scoped.effect(
+          () => scoped.connection.fetch.register({ path, methods: ["POST"], requestBody: "buffered", fetch: handler }),
+          label ?? `dsh-soul: ${path}`,
+        );
+      } catch (error) {
+        warn(ctx, `dsh-soul: ${path} not registered: ${oneLine(error)}`);
+      }
+    });
+  } catch (error) {
+    warn(ctx, `dsh-soul: ${path} not registered: ${oneLine(error)}`);
+    return false;
+  }
   return true;
 }

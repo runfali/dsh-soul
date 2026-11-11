@@ -159,10 +159,25 @@ function writePath(root, path, op) {
  * reacts to an operation it will not store (a non-volatile path, a revision
  * conflict), and it is the case a "settled ⇒ saved" UI gets wrong.
  */
+/**
+ * Deep-merge the composition layer under the user layer, so `value` models what
+ * the host would resolve. A key the user layer never set survives; that is what
+ * makes a base-layer card visible (and undeletable from the settings page).
+ */
+function mergeDeep(base, user) {
+  if (user === undefined) return structuredClone(base);
+  if (base === null || user === null || typeof base !== "object" || typeof user !== "object") return structuredClone(user);
+  if (Array.isArray(base) || Array.isArray(user)) return structuredClone(user);
+  const out = {};
+  for (const key of new Set([...Object.keys(base), ...Object.keys(user)])) out[key] = mergeDeep(base[key], user[key]);
+  return out;
+}
+
 export function makeScope(initial, options = {}) {
   let revision = 1;
-  let value = structuredClone(initial);
   let user = structuredClone(initial);
+  const base = options.base ? structuredClone(options.base) : {};
+  let value = mergeDeep(base, user);
   const writes = [];
   return {
     writes,
@@ -174,10 +189,8 @@ export function makeScope(initial, options = {}) {
         revision += 1;
         return true;
       }
-      for (const op of ops) {
-        writePath(value, op.path, op);
-        writePath(user, op.path, op);
-      }
+      for (const op of ops) writePath(user, op.path, op);
+      value = mergeDeep(base, user);
       revision += 1;
       return true;
     },

@@ -29,9 +29,9 @@ const BASE_CONFIG = {
 };
 
 /** Boot, apply, mount the settings component, and run its mount effects. */
-async function mountSettings({ config = BASE_CONFIG, refuse = false, writable = true, fetch } = {}) {
+async function mountSettings({ config = BASE_CONFIG, refuse = false, writable = true, base, fetch } = {}) {
   const { plugin, mount } = await bootClient({ fetch });
-  const scope = makeScope(config, { refuse, writable });
+  const scope = makeScope(config, { refuse, writable, base });
   const applied = applyClient(plugin, { scope, localeDict: plugin.__test.dictionaries });
   const entry = applied.slots.find((slot) => slot.meta.name === "plugins.bundle.config");
   const element = entry.component({});
@@ -250,3 +250,63 @@ test("a read-only profile disables every control", async () => {
   }
 });
 
+
+test("creating a card under an existing name is refused instead of overwriting it", async () => {
+  const { scope, view } = await mountSettings();
+  let state = typeInto(view, "input", "严肃");
+  state = typeInto(state, "textarea", "完全不同的内容");
+  buttonByText(state.tree, "新建卡片").props.onClick();
+  await settle();
+  assert.equal(scope.writes.length, 0, "nothing may be written");
+  assert.match(textOf(refresh(state).tree), /新建会覆盖它/);
+  assert.equal(scope.getSnapshot().value.cards["严肃"], "你很严肃。");
+});
+
+test("a blank card can be filled in, because it has no row to click", async () => {
+  // A hand-written `cards: {X: ""}` renders no row at all, so a create that
+  // refused to touch it would be a name the user can never repair.
+  const { scope, view } = await mountSettings({ config: { ...BASE_CONFIG, cards: { 大肥鱼: "你是一条大肥鱼。", 旧卡: "" } } });
+  let state = typeInto(view, "input", "旧卡");
+  state = typeInto(state, "textarea", "补上的内容");
+  buttonByText(state.tree, "新建卡片").props.onClick();
+  await settle();
+  assert.deepEqual(scope.writes.at(-1).ops, [{ op: "set", path: ["cards", "旧卡"], value: "补上的内容" }]);
+});
+
+test("an endpoint that answers ok:false is a failure, not an empty list", async () => {
+  const fetch = async () => new Response(JSON.stringify({ version: 1, ok: false, reason: "absent" }), { status: 200, headers: { "content-type": "application/json" } });
+  const { view } = await mountSettings({ fetch });
+  assert.match(textOf(view.tree), /读不到宿主的工作区列表/);
+  assert.doesNotMatch(textOf(view.tree), /宿主还没有登记工作区/);
+});
+
+test("a failed workspace read does not mark saved mappings stale", async () => {
+  const fetch = async () => new Response(JSON.stringify({ version: 1, error: "nope" }), { status: 500, headers: { "content-type": "application/json" } });
+  const { view } = await mountSettings({ config: { ...BASE_CONFIG, workspaces: { "D:\\Gone": "严肃" } }, fetch });
+  // The read never produced a list, so "not in the list" is a claim about data
+  // this page does not have; the row renders plain and stays editable.
+  assert.doesNotMatch(textOf(view.tree), /这个工作区已不在列表里/);
+  assert.equal(findAll(view.tree, (node) => node.type === "select").length, 1);
+});
+
+test("a card declared by the host configuration layer says why it cannot be deleted", async () => {
+  const { scope, view } = await mountSettings({ base: { cards: { 大肥鱼: "你是一条大肥鱼。", 严肃: "你很严肃。" } } });
+  buttonByText(cardRow(view, "严肃"), "删除").props.onClick();
+  await settle();
+  let state = refresh(view);
+  buttonByText(cardRow(state, "严肃"), "再点一次删除").props.onClick();
+  await settle();
+  assert.deepEqual(scope.writes.at(-1).ops, [{ op: "unset", path: ["cards", "严肃"] }]);
+  state = refresh(state);
+  assert.match(textOf(state.tree), /宿主配置层/);
+  // The card is still resolved by the host, so the row must still be there.
+  assert.ok(cardRows(state).some((row) => textOf(row).includes("严肃")));
+});
+
+test("the preview truncates by code point, never mid-character", async () => {
+  const { plugin } = await mountSettings();
+  const preview = plugin.__test.cardPreview("🐟".repeat(70));
+  assert.equal(preview, "🐟".repeat(64) + "…");
+  assert.equal(Array.from(preview).length, 65);
+  assert.equal(plugin.__test.cardPreview("短\n第二行"), "短");
+});

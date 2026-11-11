@@ -141,8 +141,13 @@ test("persona_read answers with the card this session would get", async () => {
 test("persona_read renders a readable block and an explicit empty state", () => {
   const host = fakeHost({ config: { cards: CARDS, active: "大肥鱼" } });
   const render = host.tools[0].output.render;
-  assert.deepEqual(render({}, { exists: true, persona: "大肥鱼", content: "你是一条大肥鱼。" }), [
-    { type: "text", text: 'Persona card "大肥鱼":\n你是一条大肥鱼。' },
+  // The source is part of what the model reads: a field the render drops never
+  // reaches it, so `source` in the schema would be a dead column.
+  assert.deepEqual(render({}, { exists: true, persona: "大肥鱼", content: "你是一条大肥鱼。", source: "default" }), [
+    { type: "text", text: 'Persona card "大肥鱼" (default):\n你是一条大肥鱼。' },
+  ]);
+  assert.deepEqual(render({}, { exists: true, persona: "大肥鱼", content: "x" }), [
+    { type: "text", text: 'Persona card "大肥鱼":\nx' },
   ]);
   assert.deepEqual(render({}, { exists: false, persona: "none", content: "" }), [
     { type: "text", text: "No persona card is active for this session." },

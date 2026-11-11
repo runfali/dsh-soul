@@ -64,7 +64,7 @@ The bundle patch (`cordis.patch.yml`) declares the loader entry `id: soul`. That
 
 ## Internals worth knowing
 
-One same-origin `POST` endpoint backs the settings card. Exact `/api` routes bypass the harness fence, so they do their own checks: a non-JSON request is refused with `415`, and a cross-site `Origin` (or `Origin: null`) with `403`. A same-origin call with no `Origin` header is allowed, which is what the desktop client sends.
+One same-origin `POST` endpoint backs the settings card. Exact `/api` routes bypass the harness fence, so they do their own checks: a non-JSON request is refused with `415`, and a cross-site `Origin` (or `Origin: null`, or a `Sec-Fetch-Site` that says cross-site) with `403`. Same-origin is decided by comparing the `Origin` host with the request's `Host` header — **not** with `request.url`, which the host rewrites to a synthetic `http://dsh.internal` base before it reaches the route, so a URL-based comparison would refuse every real call. A call with no `Origin` header at all is allowed, which is what a local script or the desktop client sends.
 
 | Route | Purpose |
 | --- | --- |
@@ -81,7 +81,7 @@ npm install --cache ./.npm-cache    # a local cache keeps the sandbox out of %LO
 npm test
 ```
 
-`npm test` runs 100 tests in one process (`--experimental-test-isolation=none`, because a restricted sandbox may block the runner's child processes):
+`npm test` runs 110 tests in one process (`--experimental-test-isolation=none`, because a restricted sandbox may block the runner's child processes):
 
 - `persona.test.mjs` — resolution order, the `none` sentinel, stale and blank choices, path normalization, the subagent gate
 - `routes.test.mjs` — request guards (415 / 403 / same-origin), build failures, version envelope

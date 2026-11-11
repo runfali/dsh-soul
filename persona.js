@@ -136,11 +136,11 @@ export function skipsSubagent(config, agent) {
 export function resolveCard(config, target = {}) {
   const cards = plainObject(config?.cards);
   const sessions = plainObject(config?.sessions);
-  const sessionsId = typeof target.sessionId === "string" ? target.sessionId : "";
+  const sessionId = typeof target.sessionId === "string" ? target.sessionId : "";
   const usable = (name) => hasCard(cards, name);
 
-  if (sessionsId && Object.hasOwn(sessions, sessionsId)) {
-    const choice = sessions[sessionsId];
+  if (sessionId && Object.hasOwn(sessions, sessionId)) {
+    const choice = sessions[sessionId];
     if (choice === CHOICE_NONE) return { name: null, text: null, source: "session" };
     if (usable(choice)) return { name: choice, text: cards[choice], source: "session" };
   }
