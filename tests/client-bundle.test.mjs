@@ -29,9 +29,14 @@ test("the loader id is the package name — the host keys bundles by it", async 
   assert.equal(bundle.id, "dsh-soul");
 });
 
-test("react is the only module the bundle asks the host for", async () => {
-  const { required } = await bootClient();
-  assert.deepEqual(required, ["react"]);
+test("the bundle asks for react, and probes the host switch without requiring it", async () => {
+  const { required, plugin } = await bootClient();
+  // `react` is mandatory. The primitives probe is optional by design: the loader
+  // in this harness refuses it, the bundle must survive that refusal and fall
+  // back to its own switch rather than lose the whole settings card.
+  assert.deepEqual(required, ["react", "@deepseek-ai/dsh-client-ui-primitives"]);
+  const { css } = plugin.__test;
+  assert.match(css, /__sl_switchBtn/, "the fallback switch is styled");
 });
 
 test("the plugin declares slots, locale and configForms", async () => {

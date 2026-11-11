@@ -25,59 +25,85 @@ window.__ModuleLoader__.load({
     var h = react.createElement;
 
     // ── CSS (theme tokens only, so light/dark follow the host) ─────────────
-    var CSS = ".__sl_root{max-width:640px;display:flex;flex-direction:column;gap:10px}" +
-      ".__sl_field{display:flex;flex-direction:column;gap:4px}" +
-      ".__sl_label{font-size:12px;font-weight:600;color:var(--dsw-alias-label-primary);display:flex;align-items:center;gap:6px}" +
-      ".__sl_hint{font-size:11px;color:var(--dsw-alias-label-tertiary)}" +
-      ".__sl_input{border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-3);font:inherit;color:var(--dsw-alias-label-primary);border-radius:8px;padding:6px 10px;font-size:13px;box-sizing:border-box;width:100%}" +
-      ".__sl_textarea{min-height:160px;resize:vertical;font-family:ui-monospace,Consolas,monospace;font-size:12px;line-height:1.6}" +
-      ".__sl_row{display:flex;align-items:center;gap:8px}" +
-      ".__sl_check{accent-color:var(--dsw-alias-state-business-primary)}" +
-      ".__sl_actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:4px}" +
-      ".__sl_btn{border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-primary);border-radius:8px;padding:6px 14px;font:inherit;font-size:13px;cursor:pointer}" +
-      ".__sl_btn:hover:not(:disabled){border-color:var(--dsw-alias-state-business-primary)}" +
-      ".__sl_btn:disabled{opacity:.5;cursor:default}" +
-      ".__sl_btnPrimary{border-color:var(--dsw-alias-state-business-primary, #3964fe);background:var(--dsw-alias-state-business-primary, #3964fe);color:#fff}" +
-      ".__sl_btnDanger{border-color:var(--dsw-alias-state-error-primary, #f85149);color:var(--dsw-alias-state-error-primary, #f85149)}" +
-      ".__sl_status{font-size:12px;color:var(--dsw-alias-label-tertiary)}" +
-      ".__sl_error{font-size:12px;color:var(--dsw-alias-state-error-primary)}" +
-      ".__sl_unavailable{font-size:13px;color:var(--dsw-alias-label-tertiary)}" +
-      ".__sl_group{border:1px solid var(--dsw-alias-border-l2);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:8px}" +
-      ".__sl_cardList{display:flex;flex-direction:column;gap:6px}" +
-      ".__sl_cardRow{display:flex;align-items:center;gap:8px;border:1px solid var(--dsw-alias-border-l2);border-radius:8px;padding:6px 10px;flex-wrap:wrap}" +
-      ".__sl_cardName{font-size:13px;font-weight:600;color:var(--dsw-alias-label-primary);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}" +
-      ".__sl_cardPreview{font-size:11px;color:var(--dsw-alias-label-tertiary);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}" +
-      ".__sl_badge{border:1px solid var(--dsw-alias-state-business-primary);color:var(--dsw-alias-state-business-primary);border-radius:999px;padding:0 8px;font-size:10px;white-space:nowrap}" +
-      ".__sl_switch{display:inline-flex;align-items:center;gap:6px;font-size:12px;margin-right:8px}" +
-      ".__sl_switchLabel{color:var(--dsw-alias-label-tertiary);white-space:nowrap}" +
-      ".__sl_switchSelect{border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-primary);border-radius:8px;padding:3px 6px;font:inherit;font-size:12px;max-width:180px}" +
-      ".__sl_switchHero{margin-right:0;min-width:0}" +
-      ".__sl_switchHero .__sl_switchSelect{max-width:140px;min-width:0}";
-    // Scoped flat controls retain native keyboard and form behavior.
-    CSS += `
-.dsh-flat.__sl_root{width:100%;max-width:720px;gap:14px;font-size:13px;line-height:1.65;color:var(--dsw-alias-label-primary);--flat-accent:var(--dsw-alias-state-business-primary,#3964fe);--flat-border:var(--dsw-alias-border-l2,#dce2eb)}
-.dsh-flat.__sl_root *{box-sizing:border-box;min-width:0}
-.dsh-flat.__sl_root p{margin:0}
-.dsh-flat.__sl_root label[class$="_field"]{gap:7px}
-.dsh-flat.__sl_root [class$="_label"]{font-size:13px;font-weight:500}
-.dsh-flat.__sl_root [class$="_hint"]{font-size:12px;line-height:1.65}
-.dsh-flat.__sl_root input:not([type=checkbox]),.dsh-flat.__sl_root select,.dsh-flat.__sl_root textarea{width:100%;border:1px solid var(--flat-border);border-radius:6px;background:var(--dsw-alias-bg-layer-3);color:inherit;font:inherit;padding:9px 12px;min-height:40px;box-shadow:none;transition:border-color .15s}
-.dsh-flat.__sl_root input:hover:not(:disabled),.dsh-flat.__sl_root select:hover:not(:disabled),.dsh-flat.__sl_root textarea:hover:not(:disabled){border-color:var(--dsw-alias-label-tertiary)}
-.dsh-flat.__sl_root select{appearance:none;padding-right:34px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='m2 2 4 4 4-4' fill='none' stroke='%23778091' stroke-width='1.5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
-.dsh-flat.__sl_root input[type=checkbox]{appearance:none;flex:none;width:30px;height:18px;margin:0;border:1px solid var(--flat-border);border-radius:12px;background:var(--dsw-alias-bg-layer-2);position:relative;cursor:pointer;transition:background .15s,border-color .15s}
-.dsh-flat.__sl_root input[type=checkbox]::before{content:"";position:absolute;left:2px;top:2px;width:12px;height:12px;border-radius:50%;background:var(--dsw-alias-label-secondary);transition:transform .15s}
-.dsh-flat.__sl_root input[type=checkbox]:checked{background:var(--flat-accent);border-color:var(--flat-accent)}
-.dsh-flat.__sl_root input[type=checkbox]:checked::before{transform:translateX(12px);background:#fff}
-.dsh-flat.__sl_root :is(input,select,textarea,button,summary,a):focus-visible{outline:2px solid var(--flat-accent);outline-offset:3px}
-.dsh-flat.__sl_root :is(input,select,textarea,button):disabled{opacity:.5;cursor:default}
-.dsh-flat.__sl_root [class$="_actions"]{flex-wrap:wrap;gap:10px;margin-top:4px;padding-top:16px;border-top:1px solid var(--flat-border)}
-.dsh-flat.__sl_root .__sl_group{border:0;border-top:1px solid var(--flat-border);border-radius:0;padding:20px 0 0;gap:14px}
-.dsh-flat.__sl_root .__sl_cardRow{flex-wrap:wrap;border:0;border-bottom:1px solid var(--flat-border);border-radius:0;padding:10px 0;background:none}
-.dsh-flat.__sl_root .__sl_cardPreview{flex-basis:100%;order:2}
-.dsh-flat.__sl_root .__sl_textarea{font-family:ui-monospace,Consolas,monospace;line-height:1.7;min-height:180px;resize:vertical}
-@media(max-width:480px){.dsh-flat.__sl_root{gap:16px}.dsh-flat.__sl_root .__sl_cardRow{gap:8px}}
-@media(prefers-reduced-motion:reduce){.dsh-flat.__sl_root *,.dsh-flat.__sl_root input[type=checkbox]::before{transition:none}}
-.dsh-flat.__sl_root button{border-radius:6px;min-height:34px;padding:7px 14px;font:inherit;font-size:12px;box-shadow:none}
+    // ── CSS ────────────────────────────────────────────────────────────────
+    // Drawn only with host theme tokens: a token that disappears must fail in
+    // review instead of painting a colour that belongs to no theme. The class
+    // prefix stays `__sl_` rather than borrowing dsh-ops's `ops-`: both plugins
+    // inject into the same document, so sharing class names would make whoever
+    // loads last restyle the other one.
+    var CSS = `
+.__sl_root{display:flex;flex-direction:column;gap:12px;min-width:0;max-width:720px;width:100%;margin:0;padding:0;border:0;font:inherit;color:var(--dsw-alias-label-primary)}
+.__sl_root p{margin:0;line-height:1.55;overflow-wrap:anywhere}
+.__sl_root *{box-sizing:border-box}
+.__sl_lead{margin:0;font-size:12px;line-height:1.6;color:var(--dsw-alias-label-tertiary)}
+/* One bordered card per group: the head is the title and its own description,
+   the shaded body is what can be changed inside it. */
+.__sl_card{display:flex;flex-direction:column;gap:10px;min-width:0;margin:0;padding:14px;border:.5px solid var(--dsw-alias-border-l2);border-radius:var(--dsw-radius-lg)}
+.__sl_cardHead{display:flex;align-items:flex-start;gap:16px;min-width:0}
+.__sl_fieldText{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:2px}
+.__sl_title{margin:0;font-size:13px;font-weight:600;line-height:20px;color:var(--dsw-alias-label-secondary)}
+.__sl_cardBody{display:flex;flex-direction:column;min-width:0;padding:12px;border-radius:var(--dsw-radius-md);background:var(--dsw-alias-interactive-bg-hover)}
+.__sl_cardBody > .__sl_field{padding:10px 0}
+.__sl_cardBody > .__sl_field:first-child{padding-top:0}
+.__sl_cardBody > .__sl_field:last-child{padding-bottom:0}
+.__sl_cardBody > .__sl_field + .__sl_field,.__sl_cardBody > .__sl_cardList + .__sl_field{border-top:.5px solid var(--dsw-alias-border-l2)}
+/* The card editor: fields with their own actions, separated from the list. */
+.__sl_editor{display:flex;flex-direction:column;gap:12px;min-width:0;padding-top:12px;border-top:.5px solid var(--dsw-alias-border-l2)}
+.__sl_fieldBare{padding:0}
+.__sl_fieldBare + .__sl_fieldBare{border-top:0}
+.__sl_field{display:flex;flex-direction:column;gap:6px;padding:12px 0;min-width:0}
+.__sl_field + .__sl_field{border-top:.5px solid var(--dsw-alias-border-l2)}
+.__sl_label{font-size:13px;font-weight:500;line-height:1.5;color:var(--dsw-alias-label-primary)}
+.__sl_hint{margin:0;font-size:12px;line-height:1.5;color:var(--dsw-alias-label-tertiary)}
+.__sl_status{margin:0;font-size:12px;line-height:1.5;color:var(--dsw-alias-label-tertiary)}
+.__sl_error{margin:0;font-size:12px;line-height:18px;color:var(--dsw-alias-state-error-primary)}
+.__sl_unavailable{margin:0;font-size:13px;line-height:1.6;color:var(--dsw-alias-label-tertiary)}
+.__sl_input{box-sizing:border-box;width:100%;height:34px;padding:0 12px;border:.5px solid var(--dsw-alias-border-l4);border-radius:var(--dsw-radius-md);background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-primary);font:inherit;font-size:13px;line-height:1.5}
+.__sl_input:focus-visible{outline:none;border-color:var(--dsw-alias-state-business-primary)}
+.__sl_input:disabled{color:var(--dsw-alias-label-tertiary);cursor:default}
+.__sl_input[aria-invalid=true]{border-color:var(--dsw-alias-state-error-primary)}
+.__sl_textarea{height:auto;min-height:180px;padding:10px 12px;resize:vertical;font-family:ui-monospace,Consolas,monospace;font-size:12px;line-height:1.7}
+select.__sl_input{appearance:none;padding-right:30px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='m2 2 4 4 4-4' fill='none' stroke='%23778091' stroke-width='1.5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center}
+/* Rows: the name and its badge on one line, the preview under it, then the
+   controls for that card. */
+.__sl_cardList{display:flex;flex-direction:column;min-width:0}
+.__sl_cardRow{display:flex;align-items:center;flex-wrap:wrap;gap:8px;min-width:0;padding:10px 0}
+.__sl_cardRow + .__sl_cardRow{border-top:.5px solid var(--dsw-alias-border-l2)}
+.__sl_cardName{font-size:13px;font-weight:600;line-height:1.5;color:var(--dsw-alias-label-primary);min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.__sl_cardPreview{order:3;flex:1 1 100%;font-size:12px;line-height:1.5;color:var(--dsw-alias-label-tertiary);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.__sl_cardRow > select.__sl_input{order:4;flex:1 1 100%}
+.__sl_rowActions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-left:auto}
+.__sl_badge{flex:none;border:.5px solid var(--dsw-alias-state-business-primary);color:var(--dsw-alias-state-business-primary);border-radius:999px;padding:0 8px;font-size:11px;line-height:18px;white-space:nowrap}
+.__sl_actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding-top:4px}
+.__sl_feedback{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
+.__sl_root button{font:inherit}
+.__sl_btn{appearance:none;border:.5px solid var(--dsw-alias-border-l3);border-radius:var(--dsw-radius-md);padding:5px 12px;font-size:12px;line-height:1.5;cursor:pointer;background:transparent;color:var(--dsw-alias-label-primary)}
+.__sl_btn:hover:not(:disabled){border-color:var(--dsw-alias-label-tertiary)}
+.__sl_btn:disabled{opacity:.4;cursor:default}
+.__sl_btnPrimary{border-color:transparent;background:var(--dsw-alias-label-primary);color:var(--dsw-alias-bg-layer-3)}
+.__sl_linkDanger{color:var(--dsw-alias-state-error-primary)}
+.__sl_linkDanger:hover:not(:disabled){color:var(--dsw-alias-state-error-primary)}
+.__sl_link{appearance:none;border:0;background:none;padding:0;font-size:12px;line-height:1.5;color:var(--dsw-alias-label-secondary);cursor:pointer;text-align:left}
+.__sl_link:hover:not(:disabled){color:var(--dsw-alias-label-primary)}
+.__sl_link:disabled{color:var(--dsw-alias-label-tertiary);cursor:default}
+/* A switch row reads as one line: what it does on the left, the switch on the
+   right edge. */
+.__sl_switchRow{display:flex;align-items:flex-start;gap:16px;min-width:0}
+.__sl_switchBtn{flex:none;appearance:none;position:relative;width:36px;height:20px;margin-top:2px;padding:0;border:.5px solid var(--dsw-alias-border-l4);border-radius:999px;background:var(--dsw-alias-bg-layer-2);cursor:pointer;transition:background .15s,border-color .15s}
+.__sl_knob{position:absolute;left:2px;top:2px;width:14px;height:14px;border-radius:50%;background:var(--dsw-alias-label-secondary);transition:transform .15s}
+.__sl_switchOn{background:var(--dsw-alias-state-business-primary);border-color:var(--dsw-alias-state-business-primary)}
+.__sl_switchOn .__sl_knob{transform:translateX(16px);background:var(--dsw-alias-bg-layer-3)}
+.__sl_switchBtn:disabled{opacity:.4;cursor:default}
+/* The compact control that lives in the chat header and the new-session hero. */
+.__sl_switch{display:inline-flex;align-items:center;gap:6px;font-size:12px;margin-right:8px;min-width:0}
+.__sl_switchLabel{color:var(--dsw-alias-label-tertiary);white-space:nowrap}
+.__sl_switchSelect{min-width:0;max-width:180px;height:26px;padding:0 24px 0 8px;border:.5px solid var(--dsw-alias-border-l3);border-radius:var(--dsw-radius-sm);background-color:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-primary);font:inherit;font-size:12px;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='m2 2 4 4 4-4' fill='none' stroke='%23778091' stroke-width='1.5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center}
+.__sl_switchHero{margin-right:0}
+.__sl_switchHero .__sl_switchSelect{max-width:140px}
+.__sl_switchSelect:focus-visible{outline:none;border-color:var(--dsw-alias-state-business-primary)}
+.__sl_btn:focus-visible,.__sl_btnPrimary:focus-visible,.__sl_link:focus-visible,.__sl_switchBtn:focus-visible,.__sl_input:focus-visible{outline:var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color,var(--dsw-alias-state-business-primary));outline-offset:1px}
+@media(max-width:480px){.__sl_root{gap:10px}.__sl_card{padding:12px}.__sl_rowActions{margin-left:0;flex:1 1 100%}}
+@media(prefers-reduced-motion:reduce){.__sl_knob,.__sl_switchBtn{transition:none}}
 `;
     var tagId = "dsh-soul/main.css";
     if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId) + "]") === null) {
@@ -115,6 +141,7 @@ window.__ModuleLoader__.load({
       cardListTitle: "人设卡",
       cardListHint: "聊天标题栏和新会话页都能给单个会话换卡；改这里只动卡片本身。",
       noCards: "还没有人设卡，在下面新建一张。",
+      editorTitle: "新建或编辑卡片",
       defaultBadge: "默认",
       editCard: "编辑",
       setDefault: "设为默认",
@@ -166,6 +193,7 @@ window.__ModuleLoader__.load({
       cardListTitle: "Persona cards",
       cardListHint: "The chat header and the new-session page switch one session's card; this list edits the cards themselves.",
       noCards: "No cards yet — create one below.",
+      editorTitle: "Create or edit a card",
       defaultBadge: "default",
       editCard: "Edit",
       setDefault: "Make default",
@@ -511,6 +539,39 @@ window.__ModuleLoader__.load({
     }
 
     // ── settings card ─────────────────────────────────────────────────────
+    /**
+     * The host's own switch when the module graph hands it to bundle modules.
+     *
+     * dsh-ops renders `Switch` from `@deepseek-ai/dsh-client-ui-primitives`,
+     * which it can require because it ships as a native plugin. A hand-written
+     * ModuleLoader bundle only proves that `react` resolves, so the lookup is
+     * attempted and never assumed: a throw here would otherwise take the whole
+     * settings card down. `switchElement` is the fallback that actually runs.
+     */
+    var NativeSwitch = (function () {
+      try {
+        var primitives = require("@deepseek-ai/dsh-client-ui-primitives");
+        return primitives && typeof primitives.Switch === "function" ? primitives.Switch : null;
+      } catch (error) {
+        return null;
+      }
+    })();
+
+    /** One switch: the native control when available, else an equal local button. */
+    function switchElement(props) {
+      if (NativeSwitch) return h(NativeSwitch, props);
+      var checked = props.checked === true;
+      return h("button", {
+        type: "button",
+        role: "switch",
+        "aria-checked": checked,
+        "aria-label": props.label,
+        className: "__sl_switchBtn" + (checked ? " __sl_switchOn" : ""),
+        disabled: props.disabled === true,
+        onClick: function () { if (props.disabled !== true) props.onChange(!checked); },
+      }, h("span", { className: "__sl_knob" }));
+    }
+
     function SoulSection(props) {
       useLocale(props.locale);
       var t = props.t;
@@ -572,6 +633,9 @@ window.__ModuleLoader__.load({
       // writing: disabling the whole form made typing in another group lose
       // focus mid-IME and printed "saving" under a form that was not saving.
       var busy = busyGroup !== "";
+      /** Every control carries its own gate: the fieldset cascade is a browser
+       *  behaviour a test tree does not reproduce. */
+      var locked = busy || !writable;
 
       function clearFeedback(group) {
         setNotice(function (current) { return current && current.group === group ? null : current; });
@@ -714,13 +778,43 @@ window.__ModuleLoader__.load({
         runWrite([{ op: "set", path: [key], value: checked }], null, "flags");
       }
 
+      /** A card head: the title and the one line that explains the group. */
+      function renderCardHead(titleKey, hintKey) {
+        return h("div", { className: "__sl_cardHead" },
+          h("div", { className: "__sl_fieldText" },
+            h("h4", { className: "__sl_title" }, t(titleKey)),
+            hintKey ? h("p", { className: "__sl_hint" }, t(hintKey)) : null
+          )
+        );
+      }
+
+      /** "saved" / "saving" / "failed" for one group, never more than one line. */
+      function renderFeedback(group, feedback) {
+        var notice = feedback.notice ? messageText(t, feedback.notice) : "";
+        var error = feedback.error ? messageText(t, feedback.error) : "";
+        var busyNow = busyGroup === group;
+        if (!notice && !error && !busyNow) return null;
+        return h("span", { className: "__sl_feedback" },
+          notice ? h("span", { className: "__sl_status" }, notice) : null,
+          busyNow ? h("span", { className: "__sl_status" }, t("saving")) : null,
+          error ? h("span", { className: "__sl_error", role: "alert" }, error) : null
+        );
+      }
+
       function renderSwitchRow(key, labelKey, hintKey, current) {
-        return h("label", { key: key, className: "__sl_field" },
-          h("span", { className: "__sl_row" },
-            h("input", { className: "__sl_check", type: "checkbox", checked: current, disabled: busy || !writable, onChange: function (e) { onToggleFlag(key, e.target.checked); } }),
-            h("span", { className: "__sl_label" }, t(labelKey))
-          ),
-          h("span", { className: "__sl_hint" }, t(hintKey))
+        return h("div", { key: key, className: "__sl_field" },
+          h("div", { className: "__sl_switchRow" },
+            h("div", { className: "__sl_fieldText" },
+              h("span", { className: "__sl_label" }, t(labelKey)),
+              h("span", { className: "__sl_hint" }, t(hintKey))
+            ),
+            switchElement({
+              checked: current,
+              label: t(labelKey),
+              disabled: busy || !writable,
+              onChange: function (next) { onToggleFlag(key, next); },
+            })
+          )
         );
       }
 
@@ -732,7 +826,7 @@ window.__ModuleLoader__.load({
         return h("div", { key: path, className: "__sl_cardRow" },
           h("span", { className: "__sl_cardName" }, title || path),
           stale ? h("span", { className: "__sl_badge" }, t("workspaceStale")) : null,
-          h("span", { className: "__sl_cardPreview" }, path),
+          title && title !== path ? h("span", { className: "__sl_cardPreview" }, path) : null,
           h("select", {
             className: "__sl_input",
             value: current,
@@ -747,106 +841,112 @@ window.__ModuleLoader__.load({
         );
       }
 
-      var cardsFeedback = feedbackOf("cards");
-      var wsFeedback = feedbackOf("workspace");
-      var flagsFeedback = feedbackOf("flags");
+
+      var flagsFeedback = renderFeedback("flags", feedbackOf("flags"));
 
       return h("fieldset", {
         className: "__sl_root dsh-flat",
         disabled: !writable,
         style: { border: 0, margin: 0, padding: 0, minWidth: 0 },
       },
-        h("p", { className: "__sl_hint", style: { margin: "0 0 4px" } }, t("intro")),
+        h("p", { className: "__sl_lead" }, t("intro")),
 
         // ── cards ─────────────────────────────────────────────────────────
-        h("fieldset", { className: "__sl_group", disabled: busyGroup === "cards", style: { border: 0, margin: 0, padding: 0, minWidth: 0 } },
-          h("p", { className: "__sl_label", style: { margin: 0 } }, t("cardListTitle")),
-          h("p", { className: "__sl_hint", style: { margin: 0 } }, t("cardListHint")),
-          names.length === 0
-            ? h("p", { className: "__sl_status" }, t("noCards"))
-            : h("div", { className: "__sl_cardList" }, names.map(function (cardName) {
-              return h("div", { key: cardName, className: "__sl_cardRow" },
-                h("span", { className: "__sl_cardName" }, cardName),
-                cardName === active ? h("span", { className: "__sl_badge" }, t("defaultBadge")) : null,
-                h("span", { className: "__sl_cardPreview" }, cardPreview(cards[cardName])),
-                h("button", { type: "button", className: "__sl_btn", onClick: function () { onEditCard(cardName); }, disabled: busy }, t("editCard")),
-                cardName === active ? null : h("button", { type: "button", className: "__sl_btn", onClick: function () { onSetActive(cardName); }, disabled: busy }, t("setDefault")),
-                confirming === cardName
-                  ? h("span", { className: "__sl_row" },
-                    h("button", { type: "button", className: "__sl_btn __sl_btnDanger", onClick: function () { onDeleteCard(cardName); }, disabled: busy }, t("confirmDeleteShort")),
-                    h("button", { type: "button", className: "__sl_btn", onClick: function () { setConfirming(""); clearFeedback("cards"); }, disabled: busy }, t("cancel")))
-                  : h("button", { type: "button", className: "__sl_btn __sl_btnDanger", onClick: function () { onDeleteCard(cardName); }, disabled: busy }, t("deleteCard"))
-              );
-            })),
-          h("label", { className: "__sl_field" },
-            h("span", { className: "__sl_label" }, t("cardName")),
-            h("span", { className: "__sl_hint" }, t("cardNameHint")),
-            h("input", {
-              className: "__sl_input",
-              type: "text",
-              value: cardDraft.name,
-              placeholder: t("cardNamePlaceholder"),
-              onChange: function (e) {
-                var next = e.target.value;
-                setCardDraft(function (previous) { return Object.assign({}, previous, { name: next }); });
-                clearFeedback("cards");
-              },
-            })
-          ),
-          h("label", { className: "__sl_field" },
-            h("span", { className: "__sl_label" }, t("cardContent")),
-            h("span", { className: "__sl_hint" }, t("cardContentHint")),
-            h("textarea", {
-              className: "__sl_input __sl_textarea",
-              value: cardDraft.content,
-              onChange: function (e) {
-                var next = e.target.value;
-                setCardDraft(function (previous) { return Object.assign({}, previous, { content: next }); });
-                clearFeedback("cards");
-              },
-            })
-          ),
-          h("div", { className: "__sl_actions" },
-            h("button", { type: "button", className: "__sl_btn __sl_btnPrimary", onClick: onSaveCard, disabled: busy }, editing ? t("saveCard") : t("newCard")),
-            editing ? h("button", { type: "button", className: "__sl_btn", onClick: onCancelEdit, disabled: busy }, t("cancel")) : null,
-            cardsFeedback.notice ? h("span", { className: "__sl_status" }, messageText(t, cardsFeedback.notice)) : null,
-            busyGroup === "cards" ? h("span", { className: "__sl_status" }, t("saving")) : null,
-            cardsFeedback.error ? h("span", { className: "__sl_error", role: "alert" }, messageText(t, cardsFeedback.error)) : null
+        h("fieldset", { className: "__sl_card", disabled: busyGroup === "cards", style: { margin: 0, minWidth: 0 } },
+          renderCardHead("cardListTitle", "cardListHint"),
+          h("div", { className: "__sl_cardBody" },
+            names.length === 0
+              ? h("p", { className: "__sl_status" }, t("noCards"))
+              : h("div", { className: "__sl_cardList" }, names.map(function (cardName) {
+                return h("div", { key: cardName, className: "__sl_cardRow" },
+                  h("span", { className: "__sl_cardName" }, cardName),
+                  cardName === active ? h("span", { className: "__sl_badge" }, t("defaultBadge")) : null,
+                  h("span", { className: "__sl_cardPreview" }, cardPreview(cards[cardName])),
+                  h("span", { className: "__sl_rowActions" },
+                    h("button", { type: "button", className: "__sl_link", onClick: function () { onEditCard(cardName); }, disabled: locked }, t("editCard")),
+                    cardName === active ? null : h("button", { type: "button", className: "__sl_link", onClick: function () { onSetActive(cardName); }, disabled: locked }, t("setDefault")),
+                    // Two clicks, never a dialog: the second click confirms.
+                    confirming === cardName
+                      ? h("span", { className: "__sl_rowActions" },
+                        h("button", { type: "button", className: "__sl_link __sl_linkDanger", onClick: function () { onDeleteCard(cardName); }, disabled: locked }, t("confirmDeleteShort")),
+                        h("button", { type: "button", className: "__sl_link", onClick: function () { setConfirming(""); clearFeedback("cards"); }, disabled: locked }, t("cancel")))
+                      : h("button", { type: "button", className: "__sl_link", onClick: function () { onDeleteCard(cardName); }, disabled: locked }, t("deleteCard"))
+                  )
+                );
+              })),
+
+            // The editor is a field of its own, so the list above keeps its
+            // separators and this block reads as "add or change one card".
+            h("div", { className: "__sl_field" },
+              h("span", { className: "__sl_label" }, t("editorTitle")),
+              h("div", { className: "__sl_editor" },
+                h("label", { className: "__sl_field __sl_fieldBare" },
+                  h("span", { className: "__sl_label" }, t("cardName")),
+                  h("span", { className: "__sl_hint" }, t("cardNameHint")),
+                  h("input", {
+                    className: "__sl_input",
+                    type: "text",
+                    value: cardDraft.name,
+                    placeholder: t("cardNamePlaceholder"),
+                    onChange: function (e) {
+                      var next = e.target.value;
+                      setCardDraft(function (previous) { return Object.assign({}, previous, { name: next }); });
+                      clearFeedback("cards");
+                    },
+                  })
+                ),
+                h("label", { className: "__sl_field __sl_fieldBare" },
+                  h("span", { className: "__sl_label" }, t("cardContent")),
+                  h("span", { className: "__sl_hint" }, t("cardContentHint")),
+                  h("textarea", {
+                    className: "__sl_input __sl_textarea",
+                    value: cardDraft.content,
+                    onChange: function (e) {
+                      var next = e.target.value;
+                      setCardDraft(function (previous) { return Object.assign({}, previous, { content: next }); });
+                      clearFeedback("cards");
+                    },
+                  })
+                ),
+                h("div", { className: "__sl_actions" },
+                  h("button", { type: "button", className: "__sl_btn __sl_btnPrimary", onClick: onSaveCard, disabled: locked }, editing ? t("saveCard") : t("newCard")),
+                  editing ? h("button", { type: "button", className: "__sl_btn", onClick: onCancelEdit, disabled: locked }, t("cancel")) : null,
+                  renderFeedback("cards", feedbackOf("cards"))
+                )
+              )
+            )
           )
         ),
 
         // ── per-workspace choice ──────────────────────────────────────────
-        h("fieldset", { className: "__sl_group", disabled: busyGroup === "workspace", style: { border: 0, margin: 0, padding: 0, minWidth: 0 } },
-          h("p", { className: "__sl_label", style: { margin: 0 } }, t("workspaceTitle")),
-          h("p", { className: "__sl_hint", style: { margin: 0 } }, t("workspaceHint")),
-          wsFailed
-            ? h("p", { className: "__sl_status" }, t("workspaceUnavailable"))
-            : wsOptions === null
-              ? h("p", { className: "__sl_status" }, t("loading"))
-              : wsList.length === 0 && staleKeys.length === 0
-                ? h("p", { className: "__sl_status" }, t("workspaceEmpty"))
-                : null,
-          h("div", { className: "__sl_cardList" },
-            wsList.map(function (entry) { return renderWsRow(entry.path, entry.title, false); }),
-            staleKeys.map(function (path) { return renderWsRow(path, "", true); })
-          ),
-          h("div", { className: "__sl_actions" },
-            h("button", { type: "button", className: "__sl_btn", onClick: loadWorkspaces, disabled: busy }, t("refresh")),
-            wsFeedback.notice ? h("span", { className: "__sl_status" }, messageText(t, wsFeedback.notice)) : null,
-            busyGroup === "workspace" ? h("span", { className: "__sl_status" }, t("saving")) : null,
-            wsFeedback.error ? h("span", { className: "__sl_error", role: "alert" }, messageText(t, wsFeedback.error)) : null
+        h("fieldset", { className: "__sl_card", disabled: busyGroup === "workspace", style: { margin: 0, minWidth: 0 } },
+          renderCardHead("workspaceTitle", "workspaceHint"),
+          h("div", { className: "__sl_cardBody" },
+            wsFailed
+              ? h("p", { className: "__sl_status" }, t("workspaceUnavailable"))
+              : wsOptions === null
+                ? h("p", { className: "__sl_status" }, t("loading"))
+                : wsList.length === 0 && staleKeys.length === 0
+                  ? h("p", { className: "__sl_status" }, t("workspaceEmpty"))
+                  : null,
+            h("div", { className: "__sl_cardList" },
+              wsList.map(function (entry) { return renderWsRow(entry.path, entry.title, false); }),
+              staleKeys.map(function (path) { return renderWsRow(path, "", true); })
+            ),
+            h("div", { className: "__sl_actions" },
+              h("button", { type: "button", className: "__sl_link", onClick: loadWorkspaces, disabled: locked }, t("refresh")),
+              renderFeedback("workspace", feedbackOf("workspace"))
+            )
           )
         ),
 
         // ── options ──────────────────────────────────────────────────────
-        h("fieldset", { className: "__sl_group", disabled: busyGroup === "flags", style: { border: 0, margin: 0, padding: 0, minWidth: 0 } },
-          h("p", { className: "__sl_label", style: { margin: 0 } }, t("optionsTitle")),
-          renderSwitchRow("showPersonaSwitcher", "fieldShowPersonaSwitcher", "showPersonaSwitcherHint", value.showPersonaSwitcher !== false),
-          renderSwitchRow("skipSubagents", "fieldSkipSubagents", "skipSubagentsHint", value.skipSubagents !== false),
-          h("div", { className: "__sl_actions" },
-            flagsFeedback.notice ? h("span", { className: "__sl_status" }, messageText(t, flagsFeedback.notice)) : null,
-            busyGroup === "flags" ? h("span", { className: "__sl_status" }, t("saving")) : null,
-            flagsFeedback.error ? h("span", { className: "__sl_error", role: "alert" }, messageText(t, flagsFeedback.error)) : null
+        h("fieldset", { className: "__sl_card", disabled: busyGroup === "flags", style: { margin: 0, minWidth: 0 } },
+          renderCardHead("optionsTitle", ""),
+          h("div", { className: "__sl_cardBody" },
+            renderSwitchRow("showPersonaSwitcher", "fieldShowPersonaSwitcher", "showPersonaSwitcherHint", value.showPersonaSwitcher !== false),
+            renderSwitchRow("skipSubagents", "fieldSkipSubagents", "skipSubagentsHint", value.skipSubagents !== false),
+            flagsFeedback ? h("div", { className: "__sl_actions" }, flagsFeedback) : null
           )
         )
       );

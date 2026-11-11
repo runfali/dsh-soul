@@ -212,12 +212,13 @@ test("an unreachable workspace endpoint says so instead of claiming there are no
 
 test("both toggles write a single boolean key", async () => {
   const { scope, view } = await mountSettings();
-  const boxes = () => findAll(view.tree, (node) => node.type === "input" && node.props.type === "checkbox");
-  assert.equal(boxes().length, 2);
-  boxes()[0].props.onChange({ target: { checked: false } });
+  const switches = () => findAll(view.tree, (node) => node.type === "button" && node.props.role === "switch");
+  assert.equal(switches().length, 2, "one switch per flag");
+  assert.equal(switches()[0].props["aria-checked"], true);
+  switches()[0].props.onClick();
   await settle();
   assert.deepEqual(scope.writes.at(-1).ops, [{ op: "set", path: ["showPersonaSwitcher"], value: false }]);
-  boxes()[1].props.onChange({ target: { checked: false } });
+  switches()[1].props.onClick();
   await settle();
   assert.deepEqual(scope.writes.at(-1).ops, [{ op: "set", path: ["skipSubagents"], value: false }]);
 });
@@ -238,5 +239,14 @@ test("a refused write reports notApplied and keeps the user's draft", async () =
 test("a read-only profile disables every control", async () => {
   const { view } = await mountSettings({ writable: false });
   assert.equal(one(view.tree, "fieldset", { className: "__sl_root dsh-flat" }).props.disabled, true);
+  // The fieldset cascades in a browser; the rows that carry their own disabled
+  // binding must agree, or a control stays live behind a greyed card.
+  const switches = findAll(view.tree, (node) => node.type === "button" && node.props.role === "switch");
+  assert.equal(switches.length, 2);
+  for (const node of switches) assert.equal(node.props.disabled, true);
+  for (const node of findAll(view.tree, (node) => node.type === "select")) assert.equal(node.props.disabled, true);
+  for (const node of findAll(view.tree, (node) => node.type === "button" && node.props.role === undefined)) {
+    assert.equal(node.props.disabled, true, "row actions are disabled too");
+  }
 });
 
