@@ -1,0 +1,12 @@
+# dsh-soul — bundle patch layer
+#
+# Declares the plugin as a Cordis loader entry, which is what makes the package a
+# standard profile bundle: `dsh plugin --profile <p> add dsh-soul` installs and
+# mounts it without hand-editing cordis.patch.yml.
+#
+# `id: soul` is NOT cosmetic — it is the settings namespace this plugin reads and
+# writes (`ctx.configForms.get("soul")` on the client, `ctx.settings` on the
+# host). Renaming it orphans every saved card.
+- insert:
+    - id: soul
+      name: 'dsh-soul'

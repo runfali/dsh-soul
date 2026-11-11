@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Persona cards",
+    "description": "Manage Markdown persona cards, the default card, per-workspace choices and the session switcher; the card is injected into the system prompt and the model can only read it."
+  }
+}

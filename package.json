@@ -1,0 +1,84 @@
+{
+  "name": "dsh-soul",
+  "version": "0.1.0",
+  "description": "DeepSeek Harness 的人设卡插件：设置页里写卡片，按 会话 → 工作区 → 默认卡 解析后注入系统提示词；聊天标题栏和新会话页可给单个会话换卡；模型只读（persona_read）。只做人设，不含记忆。",
+  "type": "module",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./package.json": "./package.json",
+    "./locale/*.json": "./locale/*.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web"
+    },
+    "compatibility": {
+      "dsh": ">=0.2.0-rc.2 <0.3.0-0 || 0.2.1-rc.1 || 0.2.1-rc.2 || 0.2.1-rc.3 || 0.2.1-rc.4 || 0.2.1-rc.5",
+      "dshReleases": {
+        "0.1.5-rc.2": "incompatible",
+        "0.1.5-rc.3": "incompatible",
+        "0.1.6-alpha.1": "unknown",
+        "0.1.6-alpha.2": "unknown",
+        "0.1.7-alpha.1": "unknown",
+        "0.1.7-alpha.2": "unknown",
+        "0.1.7-rc.1": "incompatible",
+        "0.1.7-rc.2": "incompatible",
+        "0.2.0-rc.2": "compatible",
+        "0.2.1-rc.1": "compatible",
+        "0.2.1-rc.2": "compatible",
+        "0.2.1-rc.3": "compatible",
+        "0.2.1-rc.4": "compatible",
+        "0.2.1-rc.5": "compatible"
+      },
+      "node": ">=20.18",
+      "profiles": [
+        "web",
+        "desktop"
+      ]
+    }
+  },
+  "files": [
+    "locale",
+    "index.js",
+    "persona.js",
+    "routes.js",
+    "client.js",
+    "cordis.patch.yml",
+    "README.md",
+    "README.zh-CN.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "persona",
+    "soul",
+    "system-prompt"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.18",
+    "dsh": ">=0.2.0-rc.2 <0.3.0-0 || 0.2.1-rc.1 || 0.2.1-rc.2 || 0.2.1-rc.3 || 0.2.1-rc.4 || 0.2.1-rc.5"
+  },
+  "dependencies": {
+    "@deepseek-ai/schemastery": "^3.18.4"
+  },
+  "peerDependencies": {
+    "react": "^18.2.0"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "^4.0.5",
+    "@deepseek-ai/dsh-system-prompt": "0.2.1-rc.3",
+    "@deepseek-ai/dsh-tools": "0.2.1-rc.3",
+    "react": "18.3.1"
+  },
+  "scripts": {
+    "test": "node --test --experimental-test-isolation=none tests/*.test.mjs"
+  }
+}
