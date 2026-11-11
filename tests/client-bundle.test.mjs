@@ -99,9 +99,8 @@ test("every translation key the source uses exists in both dictionaries", async 
   for (const pattern of [/(?<![A-Za-z0-9_$])t\("([^"]+)"\)/g, /\bkey: "([^"]+)"/g, /\bdetailKey: "([^"]+)"/g]) {
     for (const match of source.matchAll(pattern)) keys.add(match[1]);
   }
-  // Keys passed as bare strings (a runWrite notice key) and message keys built
-  // from a `detailKey` selected in code.
-  for (const extra of ["saved", "importDone"]) keys.add(extra);
+  // Keys passed as bare strings rather than through `t(...)`.
+  for (const extra of ["saved"]) keys.add(extra);
   assert.ok(keys.size > 30, `key scan found only ${keys.size} keys — the regexes drifted`);
   for (const key of keys) {
     assert.equal(typeof zh[key], "string", `zh.${key} is missing`);
@@ -119,11 +118,13 @@ test("no dictionary key is dead weight", async () => {
   assert.deepEqual(orphans, []);
 });
 
-test("the stylesheet uses its own class prefix and no leftover from the old plugin", async () => {
+test("the stylesheet uses its own class prefix exclusively", async () => {
   const { plugin } = await bootClient();
   const { css } = plugin.__test;
   assert.match(css, /__sl_root/);
-  assert.equal(/__sm_/.test(css), false, "the copy still carries dsh-soul-md class names");
+  // Guards the vendored CSS block: a rule left on the original prefix would
+  // silently style nothing. See the same-named note in client.js.
+  assert.equal(/__sm_/.test(css), false, "the stylesheet still carries the original class prefix");
   assert.equal(/__sl_[a-zA-Z]+/.test(css), true);
 });
 

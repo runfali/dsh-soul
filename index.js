@@ -13,24 +13,19 @@
  *          session's card applies from the NEXT turn, no restart, no watcher)
  *          `persona_read` tool — read-only, one card, the active one
  *          POST /api/soul/workspaces  — workspace choices for the settings page
- *          POST /api/soul/import      — one-way read of the OLD `soul-md`
- *                                       namespace, so existing cards can be
- *                                       brought over without retyping them
  *   client settings card (cards, default, per-workspace choices, two toggles)
  *          conversation.session.header.actions + conversation.hero.options
  *          (the per-session switcher)
  *
- * COEXISTENCE WITH dsh-soul-md
- *   That plugin is NOT modified and NOT replaced. Two facts follow:
- *   - its section is named `soul:persona`, so this one is `dsh-soul:persona`.
- *     Registering a duplicate name throws and would take this plugin's whole
- *     apply() down with it.
- *   - the two plugins keep SEPARATE documents (`soul` vs `soul-md`). Enabling
- *     both injects both personas; the import button copies cards, it does not
- *     link them. Run one at a time unless you mean it.
+ * A STANDALONE PLUGIN
+ *   It reads and writes ONE settings document, `soul`, and nothing else: no
+ *   other plugin's namespace, no file on disk, no shared state. The section name
+ *   is namespaced by package (`dsh-soul:persona`) rather than by feature
+ *   (`soul:persona`) simply because the host throws on a duplicate section name
+ *   and a generic name is the one most likely to be taken.
  */
 import z from "@deepseek-ai/schemastery";
-import { CHOICE_NONE, agentTarget, plainObject, personaTextFor, resolveCard } from "./persona.js";
+import { CHOICE_NONE, agentTarget, personaTextFor, resolveCard } from "./persona.js";
 import { ROUTE_VERSION, oneLine, registerJsonRoute } from "./routes.js";
 
 /** Entry id inside the composition; also the settings namespace. */
@@ -38,14 +33,11 @@ const name = "soul";
 /** Settings namespace this plugin reads and writes (== the cordis.patch.yml row id). */
 const NS = "soul";
 /**
- * System-prompt section name. Deliberately NOT `soul:persona`: the original
- * dsh-soul-md registers that one, the host throws on a duplicate name, and both
- * plugins must be loadable at once so the user can compare them.
+ * System-prompt section name. Namespaced by package rather than by feature: the
+ * host throws on a duplicate section name, and `soul:persona` is the generic
+ * form another plugin is most likely to have taken.
  */
 const SECTION_PERSONA = "dsh-soul:persona";
-/** The other plugin's namespace, read (never written) by the import endpoint. */
-const LEGACY_NS = "soul-md";
-const ROUTE_IMPORT = "/api/soul/import";
 const ROUTE_WORKSPACES = "/api/soul/workspaces";
 /**
  * Only REQUIRED services are declared. `connection` and `workspaceRegistry` are
@@ -112,37 +104,6 @@ function buildWorkspaces(ctx) {
   } catch {
     return { version: ROUTE_VERSION, ok: false, reason: "not-ready", workspaces: [] };
   }
-}
-
-/**
- * The old plugin's cards, read-only.
- *
- * `describe()` lists EVERY namespace, so a profile that never installed
- * dsh-soul-md answers "not-installed" instead of failing. Only cards with
- * content are returned: an empty card cannot be injected and would only clutter
- * the confirmation list.
- */
-function buildImport(ctx) {
-  const settings = ctx.settings;
-  let rows = [];
-  try {
-    if (settings && typeof settings.describe === "function") rows = settings.describe();
-  } catch (error) {
-    return { version: ROUTE_VERSION, available: false, reason: "unreadable", cards: {}, active: "", count: 0 };
-  }
-  if (!Array.isArray(rows)) rows = [];
-  const legacy = rows.find((row) => row && row.ns === LEGACY_NS);
-  if (!legacy) return { version: ROUTE_VERSION, available: false, reason: "not-installed", cards: {}, active: "", count: 0 };
-  const value = plainObject(legacy.value);
-  const rawCards = plainObject(value.cards);
-  const cards = {};
-  for (const cardName of Object.keys(rawCards)) {
-    const content = rawCards[cardName];
-    if (typeof content !== "string" || content.trim() === "") continue;
-    cards[cardName] = content;
-  }
-  const active = typeof value.active === "string" ? value.active : "";
-  return { version: ROUTE_VERSION, available: true, cards, active, count: Object.keys(cards).length };
 }
 
 function apply(ctx, config) {
@@ -230,17 +191,12 @@ function apply(ctx, config) {
     return typeof dispose === "function" ? dispose : () => {};
   }, "dsh-soul: persona_read tool");
 
-  // ── read-only endpoints for the settings card ──────────────────────────
+  // ── read-only endpoint for the settings card ───────────────────────────
   registerJsonRoute(ctx, {
     path: ROUTE_WORKSPACES,
     build: () => buildWorkspaces(ctx),
     label: "dsh-soul: workspaces route",
   });
-  registerJsonRoute(ctx, {
-    path: ROUTE_IMPORT,
-    build: () => buildImport(ctx),
-    label: "dsh-soul: import route",
-  });
 }
 
-export { CHOICE_NONE, Config, LEGACY_NS, NS, ROUTE_IMPORT, ROUTE_WORKSPACES, SECTION_PERSONA, apply, inject, name };
+export { CHOICE_NONE, Config, NS, ROUTE_WORKSPACES, SECTION_PERSONA, apply, inject, name };

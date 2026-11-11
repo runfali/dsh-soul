@@ -24,9 +24,11 @@ function settle(ms = 120) {
 }
 
 /** A real Cordis app with the real prompt + tool services and a stubbed settings service. */
-async function boot({ cards = CARDS, active = "大肥鱼", legacyRows = [], registry = null } = {}) {
+async function boot({ cards = CARDS, active = "大肥鱼", registry = null } = {}) {
   const app = new Context();
-  app.provide("settings", { describe: () => legacyRows });
+  // Presence only: nothing in this plugin reads another namespace. `inject`
+  // lists `settings`, and without the service the fiber never starts.
+  app.provide("settings", {});
   if (registry) app.provide("workspaceRegistry", registry);
   app.plugin(SystemPrompt);
   app.plugin(Tools);

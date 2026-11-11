@@ -14,7 +14,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { applyClient, bootClient, buttonByText, find, findAll, makeScope, one, textOf } from "./helpers/harness.mjs";
-import { ROUTE_IMPORT, ROUTE_WORKSPACES } from "../index.js";
+import { ROUTE_WORKSPACES } from "../index.js";
 
 const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
 const settle = async () => { await tick(); await tick(); };
@@ -240,73 +240,3 @@ test("a read-only profile disables every control", async () => {
   assert.equal(one(view.tree, "fieldset", { className: "__sl_root dsh-flat" }).props.disabled, true);
 });
 
-// ── import ────────────────────────────────────────────────────────────────
-
-function importFetch(payload) {
-  return async (url) => {
-    assert.equal(url, ROUTE_IMPORT);
-    return new Response(JSON.stringify({ version: 1, ...payload }), { status: 200, headers: { "content-type": "application/json" } });
-  };
-}
-
-test("import scans first, then copies only the cards this namespace lacks", async () => {
-  const fetch = importFetch({ available: true, cards: { 大肥鱼: "旧内容", 新卡: "新内容" }, active: "大肥鱼", count: 2 });
-  const { scope, view } = await mountSettings({ fetch });
-  buttonByText(view.tree, "读取 soul-md 的卡片").props.onClick();
-  await settle();
-  const scanned = refresh(view);
-  assert.match(textOf(scanned.tree), /找到这些卡片/);
-  assert.match(textOf(scanned.tree), /已存在，保留原样/);
-  buttonByText(scanned.tree, "导入").props.onClick();
-  await settle();
-  assert.deepEqual(scope.writes.at(-1).ops, [{ op: "set", path: ["cards", "新卡"], value: "新内容" }]);
-  const cards = scope.getSnapshot().value.cards;
-  assert.equal(cards["大肥鱼"], "你是一条大肥鱼。", "an existing card must not be overwritten");
-  assert.equal(cards["新卡"], "新内容");
-});
-
-test("import brings the old default along only when this namespace has none", async () => {
-  const fetch = importFetch({ available: true, cards: { 导入卡: "x" }, active: "导入卡", count: 1 });
-  const { scope, view } = await mountSettings({ fetch, config: { ...BASE_CONFIG, active: "" } });
-  buttonByText(view.tree, "读取 soul-md 的卡片").props.onClick();
-  await settle();
-  buttonByText(refresh(view).tree, "导入").props.onClick();
-  await settle();
-  assert.deepEqual(scope.writes.at(-1).ops, [
-    { op: "set", path: ["cards", "导入卡"], value: "x" },
-    { op: "set", path: ["active"], value: "导入卡" },
-  ]);
-});
-
-test("import never replaces a default already chosen here", async () => {
-  const fetch = importFetch({ available: true, cards: { 导入卡: "x" }, active: "大肥鱼", count: 1 });
-  const { scope, view } = await mountSettings({ fetch });
-  buttonByText(view.tree, "读取 soul-md 的卡片").props.onClick();
-  await settle();
-  buttonByText(refresh(view).tree, "导入").props.onClick();
-  await settle();
-  assert.deepEqual(scope.writes.at(-1).ops, [{ op: "set", path: ["cards", "导入卡"], value: "x" }]);
-});
-
-test("import reports an absent old plugin and an empty old document differently", async () => {
-  const absent = await mountSettings({ fetch: importFetch({ available: false, reason: "not-installed", cards: {} }) });
-  buttonByText(absent.view.tree, "读取 soul-md 的卡片").props.onClick();
-  await settle();
-  assert.match(textOf(refresh(absent.view).tree), /没有安装或没有配置 soul-md/);
-
-  const empty = await mountSettings({ fetch: importFetch({ available: true, cards: {}, active: "", count: 0 }) });
-  buttonByText(empty.view.tree, "读取 soul-md 的卡片").props.onClick();
-  await settle();
-  assert.match(textOf(refresh(empty.view).tree), /没有卡片/);
-});
-
-test("import says so when nothing new is left to copy", async () => {
-  const fetch = importFetch({ available: true, cards: { 大肥鱼: "旧内容" }, active: "大肥鱼", count: 1 });
-  const { scope, view } = await mountSettings({ fetch });
-  buttonByText(view.tree, "读取 soul-md 的卡片").props.onClick();
-  await settle();
-  buttonByText(refresh(view).tree, "导入").props.onClick();
-  await settle();
-  // Every card already exists here, so there is nothing to write.
-  assert.equal(scope.writes.length, 0);
-});

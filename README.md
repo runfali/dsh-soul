@@ -4,13 +4,13 @@
 
 Persona cards for DeepSeek Harness. You write Markdown cards in the settings page; the card that applies to a session is resolved from those settings and injected into the system prompt as one section. The model can read the card, never write it.
 
-This is the persona half of the `dsh-soul-md` plugin extracted into its own plugin. Cards live in their own settings namespace (`soul`), so both plugins can be installed side by side while you migrate — and the old one is left completely untouched.
+A standalone plugin: it reads and writes exactly one settings document (`soul`) and nothing else — no other plugin's namespace, no file on disk, no shared state.
 
 > [!IMPORTANT]
 > **Design commitments, in the order they constrain the code**
 >
 > 1. **Settings, not files.** Cards are ordinary settings values in the `soul` namespace. They hot-reload, they are visible in the settings UI, and they inherit the host's revision checks. Nothing is written to a data directory, and no file format is invented.
-> 2. **One section, one owner.** The prompt section is `dsh-soul:persona`. The old plugin registers `soul:persona`, and the host throws on a duplicate section name — a shared name would take the whole profile down, so the names are deliberately different.
+> 2. **One section, one owner.** The prompt section is `dsh-soul:persona` — scoped by package, not by feature. The host throws on a duplicate section name and that throw lands inside `apply()`, so a generic name like `soul:persona` is the one most likely to collide and take the whole plugin down.
 > 3. **Every write is the smallest one that does the job.** A session choice writes one key (`sessions.<id>`), a workspace choice writes one key (`workspaces.<path>`). Writing the whole map would copy lower-layer entries into the user layer and pin choices the user never made.
 > 4. **A write is not saved until the host agrees.** After mutating, the result is verified against the fresh snapshot; a resolved-but-refused write is reported as a failure, and the draft stays in the form.
 > 5. **Read-only for the model.** `persona_read` exists so an agent can quote its own persona; there is no write tool, no route that accepts card text, and no prompt-injection surface beyond what the user typed into the card.
@@ -19,7 +19,7 @@ This is the persona half of the `dsh-soul-md` plugin extracted into its own plug
 
 | Surface | Where | What it does |
 | --- | --- | --- |
-| **Settings card** | Settings → Plugins → *Persona cards* | Card list, editor (create / rename / edit / delete / set default), per-workspace choices, two switches, and a one-click import from the old namespace |
+| **Settings card** | Settings → Plugins → *Persona cards* | Card list, editor (create / rename / edit / delete / set default), per-workspace choices, and two switches |
 | **Session switcher** | Chat header, one per conversation | Pins a card to *this* session, or turns the persona off for it |
 | **New-session switcher** | New-session page options | The same choice before the first message; the composer is held until the choice is stored |
 | **`persona_read`** | Agent tool list | Returns the card that applies to the calling session (name, text, and which layer won) |
@@ -53,17 +53,6 @@ A stored choice that names a card which no longer exists (or a card that is blan
 
 All of it is volatile, so the settings page edits it live — no restart.
 
-## Migrating from `dsh-soul-md`
-
-Open the settings card and press **读取 soul-md 的卡片 / Read soul-md cards**. The scan lists what the old namespace holds and marks the cards that already exist here; then **导入 / Import** copies:
-
-- every card whose name does not exist here yet (an existing card is never overwritten — the old text of a card you have edited here is not what you would want),
-- the old default card, but only when this namespace has no default of its own.
-
-The old namespace is only ever read. Nothing is deleted there, the old plugin keeps working, and you can re-run the import as often as you like.
-
-**While both plugins are enabled, the old one keeps injecting its own persona** — different section name, same job — so with cards on both sides the prompt carries two personas at once. Once the copy looks right, clear the old default card (or disable `dsh-soul-md`). This plugin never disables it for you, and never writes to its namespace.
-
 ## Compatibility
 
 - dsh `>=0.2.0-rc.2 <0.3.0-0`, with `0.2.1-rc.1` … `0.2.1-rc.5` listed individually in `dsh.compatibility`
@@ -75,14 +64,13 @@ The bundle patch (`cordis.patch.yml`) declares the loader entry `id: soul`. That
 
 ## Internals worth knowing
 
-Two same-origin `POST` endpoints back the settings card. Exact `/api` routes bypass the harness fence, so they do their own checks: a non-JSON request is refused with `415`, and a cross-site `Origin` (or `Origin: null`) with `403`. A same-origin call with no `Origin` header is allowed, which is what the desktop client sends.
+One same-origin `POST` endpoint backs the settings card. Exact `/api` routes bypass the harness fence, so they do their own checks: a non-JSON request is refused with `415`, and a cross-site `Origin` (or `Origin: null`) with `403`. A same-origin call with no `Origin` header is allowed, which is what the desktop client sends.
 
 | Route | Purpose |
 | --- | --- |
 | `/api/soul/workspaces` | List the host's workspaces, so the settings card can offer them by title |
-| `/api/soul/import` | Read the legacy `soul-md` namespace (cards + default), never write it |
 
-Both answer `{version: 1, …}`; a version mismatch is treated as "unavailable" rather than guessed at.
+It answers `{version: 1, …}`; a version mismatch is treated as "unavailable" rather than guessed at.
 
 ## Development
 
@@ -91,14 +79,14 @@ npm install --cache ./.npm-cache    # a local cache keeps the sandbox out of %LO
 npm test
 ```
 
-`npm test` runs 108 tests in one process (`--experimental-test-isolation=none`, because a restricted sandbox may block the runner's child processes):
+`npm test` runs 100 tests in one process (`--experimental-test-isolation=none`, because a restricted sandbox may block the runner's child processes):
 
 - `persona.test.mjs` — resolution order, the `none` sentinel, stale and blank choices, path normalization, the subagent gate
 - `routes.test.mjs` — request guards (415 / 403 / same-origin), build failures, version envelope
-- `host-plugin.test.mjs` — the plugin surface against a fake host: section registration, tool schema, both routes, duplicate-name behaviour
+- `host-plugin.test.mjs` — the plugin surface against a fake host: section registration, tool schema, the workspace route, duplicate-name behaviour
 - `host-contract.test.mjs` — the same claims against the **real** `@deepseek-ai/cordis` + `dsh-system-prompt` + `dsh-tools`, including that a disposer really unregisters
 - `client-bundle.test.mjs` — bundle hygiene: loader id, requires, injected services, slot metas, zh/en key parity, no dead translation keys
-- `client-settings.test.mjs` — the settings card driven through the real components: create, rename (one batch), two-click delete, single-key writes, refusals, read-only, import
+- `client-settings.test.mjs` — the settings card driven through the real components: create, rename (one batch), two-click delete, single-key writes, refusals, read-only
 - `client-switcher.test.mjs` — the session switcher: three states, single-key writes, hidden state, composer hold
 
 The client tests load the shipped `client.js` into a mini hooks runtime rather than a copy of the code, so the assertions run against the file that ships.

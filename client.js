@@ -96,7 +96,6 @@ window.__ModuleLoader__.load({
     /** The bundle key the host resolves the settings card by. */
     var BUNDLE_KEY = "dsh-soul";
     var WORKSPACES_URL = "/api/soul/workspaces";
-    var IMPORT_URL = "/api/soul/import";
     /** The only payload shape this build renders. */
     var WIRE_VERSION = 1;
     var NET_TIMEOUT_MS = 8000;
@@ -132,20 +131,6 @@ window.__ModuleLoader__.load({
       invalidCardContent: "请输入卡片内容",
       reservedCardName: "这个名称是 JavaScript 的保留属性名（如 __proto__、constructor），用作卡名会被吞掉，请换一个",
       cardExists: "已存在同名人设卡；改名会覆盖它，请先删除或换个名字",
-
-      importTitle: "从 soul-md 导入",
-      importHint: "只读取旧的 soul-md 设置里的卡片，复制到本插件；同名卡保留现在的内容，不覆盖。",
-      importCoexistHint: "旧插件如果还开着，它的人设会继续注入：两边都留着卡片时，提示词里会同时出现两段人设。迁移完把它的人设清空或停用旧插件。",
-      importButton: "读取 soul-md 的卡片",
-      importScanning: "正在读取…",
-      importFound: "找到这些卡片（点一下复制过来）",
-      importApply: "导入",
-      importNone: "旧的 soul-md 设置里没有卡片。",
-      importUnavailable: "这个环境没有安装或没有配置 soul-md 插件，没有可导入的卡片。",
-      importUnreadable: "读不到旧的设置文档，请在宿主日志里查看原因。",
-      importDone: "已导入新卡（同名卡保留原样）",
-      importNothingNew: "这些卡片都已经存在，没有新增。",
-      existingBadge: "已存在，保留原样",
 
       workspaceTitle: "按工作区指定人设",
       workspaceHint: "打开某个工作区的会话时，优先用它指定的卡。单个会话的选择仍然优先于这里。",
@@ -197,20 +182,6 @@ window.__ModuleLoader__.load({
       invalidCardContent: "Enter card content",
       reservedCardName: "This name is a JavaScript prototype property (__proto__, constructor, …) and would be swallowed — pick another",
       cardExists: "A card with that name already exists; renaming would overwrite it, so delete it first or pick another name",
-
-      importTitle: "Import from soul-md",
-      importHint: "Reads the cards in the old soul-md settings and copies them here. A card that already exists keeps the content you have.",
-      importCoexistHint: "The old plugin, if still enabled, keeps injecting its own persona: with cards on both sides the prompt carries two personas. Once the migration is done, clear its default or disable it.",
-      importButton: "Read soul-md cards",
-      importScanning: "Reading…",
-      importFound: "Cards found (click to copy them over)",
-      importApply: "Import",
-      importNone: "The old soul-md settings hold no cards.",
-      importUnavailable: "The soul-md plugin is not installed or not configured here, so there is nothing to import.",
-      importUnreadable: "The old settings document could not be read; see the host log.",
-      importDone: "Imported the new cards (existing names untouched)",
-      importNothingNew: "Every one of those cards already exists; nothing was added.",
-      existingBadge: "already here, kept",
 
       workspaceTitle: "Persona per workspace",
       workspaceHint: "A session opened in this workspace uses the card chosen here. A per-session choice still wins.",
@@ -566,9 +537,6 @@ window.__ModuleLoader__.load({
       /** Workspace candidates from the read-only endpoint; null = not read yet. */
       var [wsOptions, setWsOptions] = react.useState(null);
       var [wsFailed, setWsFailed] = react.useState(false);
-      /** A finished import scan awaiting the user's confirmation. */
-      var [importScan, setImportScan] = react.useState(null);
-      var [importBusy, setImportBusy] = react.useState(false);
       var wsAlive = react.useRef(false);
 
       react.useEffect(function () {
@@ -623,10 +591,10 @@ window.__ModuleLoader__.load({
        * Reports success only when the namespace section confirms the change, so
        * a refused write cannot masquerade as "saved"; on failure the form is
        * reloaded from whatever the host actually holds. `group` rides the
-       * feedback so "saved" from the card form never appears under the memory
-       * options.
+       * feedback so "saved" from the card form never appears under the
+       * workspace or options groups.
        */
-      function runWrite(ops, onOk, group, noticeKey) {
+      function runWrite(ops, onOk, group) {
         if (writePending.current || !writable) return;
         writePending.current = true;
         setBusyGroup(group);
@@ -641,7 +609,7 @@ window.__ModuleLoader__.load({
             setError({ key: "error", detailKey: "notApplied", group: group });
             return;
           }
-          setNotice({ key: noticeKey || "saved", group: group });
+          setNotice({ key: "saved", group: group });
           if (onOk) onOk();
         }).catch(function (e) {
           writePending.current = false;
@@ -746,51 +714,6 @@ window.__ModuleLoader__.load({
         runWrite([{ op: "set", path: [key], value: checked }], null, "flags");
       }
 
-      function scanImport() {
-        if (importBusy || !writable) return;
-        setImportBusy(true);
-        clearFeedback("import");
-        setImportScan(null);
-        postJson(IMPORT_URL, {}).then(function (result) {
-          setImportBusy(false);
-          if (result.status === "ready") {
-            var payload = result.payload;
-            if (!payload.available) {
-              setError({ key: "error", detailKey: payload.reason === "unreadable" ? "importUnreadable" : "importUnavailable", group: "import" });
-              return;
-            }
-            var found = usableCardNames(plainObject(payload.cards));
-            if (found.length === 0) { setNotice({ key: "importNone", group: "import" }); return; }
-            setImportScan({ cards: plainObject(payload.cards), active: typeof payload.active === "string" ? payload.active : "", names: found });
-            return;
-          }
-          setError({ key: "error", detailKey: "importUnavailable", detail: result.reason || result.detail, group: "import" });
-        });
-      }
-
-      function applyImport() {
-        if (!importScan) return;
-        var ops = [];
-        var added = 0;
-        importScan.names.forEach(function (cardName) {
-          if (reservedName(cardName)) return;
-          if (Object.hasOwn(cards, cardName)) return;
-          ops.push({ op: "set", path: ["cards", cardName], value: importScan.cards[cardName] });
-          added += 1;
-        });
-        // The default comes along only when this namespace has none: an import
-        // must not silently replace a default the user chose here.
-        if (added > 0 && active === "" && importScan.active && importScan.names.indexOf(importScan.active) !== -1) {
-          ops.push({ op: "set", path: ["active"], value: importScan.active });
-        }
-        if (ops.length === 0) {
-          setImportScan(null);
-          setNotice({ key: "importNothingNew", group: "import" });
-          return;
-        }
-        runWrite(ops, function () { setImportScan(null); }, "import", "importDone");
-      }
-
       function renderSwitchRow(key, labelKey, hintKey, current) {
         return h("label", { key: key, className: "__sl_field" },
           h("span", { className: "__sl_row" },
@@ -826,7 +749,6 @@ window.__ModuleLoader__.load({
 
       var cardsFeedback = feedbackOf("cards");
       var wsFeedback = feedbackOf("workspace");
-      var importFeedback = feedbackOf("import");
       var flagsFeedback = feedbackOf("flags");
 
       return h("fieldset", {
@@ -891,33 +813,6 @@ window.__ModuleLoader__.load({
             busyGroup === "cards" ? h("span", { className: "__sl_status" }, t("saving")) : null,
             cardsFeedback.error ? h("span", { className: "__sl_error", role: "alert" }, messageText(t, cardsFeedback.error)) : null
           )
-        ),
-
-        // ── import from the old namespace ─────────────────────────────────
-        h("fieldset", { className: "__sl_group", disabled: busyGroup === "import" || importBusy, style: { border: 0, margin: 0, padding: 0, minWidth: 0 } },
-          h("p", { className: "__sl_label", style: { margin: 0 } }, t("importTitle")),
-          h("p", { className: "__sl_hint", style: { margin: 0 } }, t("importHint")),
-          h("p", { className: "__sl_hint", style: { margin: 0 } }, t("importCoexistHint")),
-          h("div", { className: "__sl_actions" },
-            h("button", { type: "button", className: "__sl_btn", onClick: scanImport, disabled: busy }, importBusy ? t("importScanning") : t("importButton")),
-            importScan ? h("span", { className: "__sl_row" },
-              h("button", { type: "button", className: "__sl_btn __sl_btnPrimary", onClick: applyImport, disabled: busy }, t("importApply")),
-              h("button", { type: "button", className: "__sl_btn", onClick: function () { setImportScan(null); }, disabled: busy }, t("cancel"))) : null
-          ),
-          importScan
-            ? h("div", { className: "__sl_cardList" },
-              h("p", { className: "__sl_hint", style: { margin: 0 } }, t("importFound")),
-              importScan.names.map(function (cardName) {
-                var exists = Object.hasOwn(cards, cardName);
-                return h("div", { key: cardName, className: "__sl_cardRow" },
-                  h("span", { className: "__sl_cardName" }, cardName),
-                  exists ? h("span", { className: "__sl_badge" }, t("existingBadge")) : null,
-                  h("span", { className: "__sl_cardPreview" }, cardPreview(importScan.cards[cardName]))
-                );
-              }))
-            : null,
-          importFeedback.notice ? h("span", { className: "__sl_status" }, messageText(t, importFeedback.notice)) : null,
-          importFeedback.error ? h("span", { className: "__sl_error", role: "alert" }, messageText(t, importFeedback.error)) : null
         ),
 
         // ── per-workspace choice ──────────────────────────────────────────

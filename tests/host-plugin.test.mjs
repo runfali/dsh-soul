@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { ROUTE_IMPORT, ROUTE_WORKSPACES, SECTION_PERSONA, apply as applyPlugin, name as pluginName, NS } from "../index.js";
+import { ROUTE_WORKSPACES, SECTION_PERSONA, apply as applyPlugin, name as pluginName, NS } from "../index.js";
 
 /**
  * A host stand-in with exactly the four services this plugin touches.
@@ -9,7 +9,7 @@ import { ROUTE_IMPORT, ROUTE_WORKSPACES, SECTION_PERSONA, apply as applyPlugin, 
  * not re-implement the host. The real host objects are exercised in
  * `host-contract.test.mjs`.
  */
-function fakeHost({ config = {}, legacy, registry, settingsRows } = {}) {
+function fakeHost({ config = {}, registry } = {}) {
   const sections = [];
   const tools = [];
   const routes = [];
@@ -36,9 +36,9 @@ function fakeHost({ config = {}, legacy, registry, settingsRows } = {}) {
         return () => { tools.splice(tools.indexOf(tool), 1); };
       },
     },
-    settings: {
-      describe: () => settingsRows ?? (legacy === undefined ? [] : [{ ns: "soul-md", value: legacy }]),
-    },
+    // Declared by `inject`; the plugin registers no reader of its own any more,
+    // but the host needs the service present for the settings document to exist.
+    settings: {},
     get: (serviceName) => {
       if (serviceName !== "workspaceRegistry") return undefined;
       if (registry === "throw") throw new Error("service not available");
@@ -74,7 +74,7 @@ test("the persona section is registered once, at the front, without interpolatio
   assert.equal(typeof section.text, "function");
 });
 
-test("the section name is NOT the one dsh-soul-md owns, so both plugins can load", () => {
+test("the section name is package-scoped, so no other plugin can collide with it", () => {
   // A duplicate global section name throws, and that throw happens inside
   // apply() — the whole plugin (tools, endpoints, settings) would fail to load.
   assert.notEqual(SECTION_PERSONA, "soul:persona");
@@ -149,9 +149,9 @@ test("persona_read renders a readable block and an explicit empty state", () => 
   ]);
 });
 
-test("both read-only endpoints are registered as POST routes", () => {
+test("the read-only endpoint is registered as a POST route", () => {
   const host = fakeHost({ config: {} });
-  assert.deepEqual(host.routes.map((route) => route.path).sort(), [ROUTE_IMPORT, ROUTE_WORKSPACES].sort());
+  assert.deepEqual(host.routes.map((route) => route.path), [ROUTE_WORKSPACES]);
   for (const route of host.routes) {
     assert.deepEqual(route.methods, ["POST"]);
     assert.equal(route.requestBody, "buffered");
@@ -167,36 +167,6 @@ async function call(host, path, request) {
   }));
   return { status: response.status, body: await response.json() };
 }
-
-test("the import endpoint reports the OLD namespace's cards and nothing else", async () => {
-  const host = fakeHost({
-    config: {},
-    legacy: { cards: { 大肥鱼: "你是一条大肥鱼。", 空白: "  ", 坏值: 42 }, active: "大肥鱼", memory: { maxBytes: 1 } },
-  });
-  const { status, body } = await call(host, ROUTE_IMPORT);
-  assert.equal(status, 200);
-  assert.equal(body.available, true);
-  assert.deepEqual(body.cards, { 大肥鱼: "你是一条大肥鱼。" });
-  assert.equal(body.active, "大肥鱼");
-  assert.equal(body.count, 1);
-});
-
-test("the import endpoint says not-installed when soul-md was never configured", async () => {
-  const host = fakeHost({ config: {}, settingsRows: [{ ns: "other", value: {} }] });
-  const { body } = await call(host, ROUTE_IMPORT);
-  assert.equal(body.available, false);
-  assert.equal(body.reason, "not-installed");
-  assert.deepEqual(body.cards, {});
-});
-
-test("the import endpoint survives a settings document it cannot read", async () => {
-  const host = fakeHost({ config: {}, settingsRows: null });
-  host.ctx.settings.describe = () => { throw new Error("document unreadable"); };
-  const { status, body } = await call(host, ROUTE_IMPORT);
-  assert.equal(status, 200);
-  assert.equal(body.available, false);
-  assert.equal(body.reason, "unreadable");
-});
 
 test("the workspace endpoint publishes title + path and drops empty paths", async () => {
   const host = fakeHost({
