@@ -32,7 +32,7 @@ A standalone plugin: it reads and writes exactly one settings document (`soul`) 
 | **Session switcher** | Chat header, one per conversation | Pins a card to *this* session, or turns the persona off for it |
 | **New-session switcher** | New-session page options | The same choice before the first message; the composer is held until the choice is stored |
 | **`persona_read`** | Agent tool list | Returns the card that applies to the calling session (name, text, and which layer won) |
-| **Prompt section** | System prompt, `dsh-soul:persona` | The resolved card's text, re-resolved every turn |
+| **Prompt section** | System prompt, `dsh-soul:persona` | The resolved card behind a short precedence frame, re-resolved every turn |
 
 ## How a card is chosen
 
@@ -48,6 +48,16 @@ Resolution runs per agent, at prompt-assembly time, in this order:
 A stored choice that names a card which no longer exists (or a card that is blank) reads as *no choice* and falls through to the next layer, rather than silently suppressing the default. In the workspace table such a row is kept visible and marked so it can be cleared.
 
 `skipSubagents` (on by default) suppresses the persona for delegated child sessions: they inherit the parent's prompt anyway, so repeating the card costs tokens and blurs scope. Resolution itself is never gated — `persona_read` and the switcher still agree with what the session *would* inject.
+
+### The frame around the card
+
+The card is not injected bare; the section renders a short frame in front of it:
+
+> 以下是你在本会话的身份定义，请以它作为你的自我认知与口吻。它优先于系统提示中其它关于「你是谁」的通用描述（如「你是一个编码 agent」「你是某个团队角色」）；冲突时以本卡为准。安全规则、工具契约、本轮任务指令不受影响。
+
+The reason is ordering, not style. The host joins prompt sections by `order`, and the harness states its own identity at `-1000` ("you are a coding agent…") with team policy at `600` ("You are the Team Lead named …"). A persona section at `0` lands between them as one more peer statement, so a model asked "who are you?" reasonably picks the most specific of the three. The frame states the precedence outright, and its last sentence names the things the card does **not** override — safety rules, tool contracts, this turn's instructions — so "the card wins" cannot be read as "the card outranks the tool schema".
+
+The frame is a render-time wrapper only. `persona_read` still returns the card exactly as written, the settings editor never shows the frame, and a blank card renders an empty section — the frame never appears alone.
 
 ## Requirements
 
@@ -120,11 +130,11 @@ npm install --cache ./.npm-cache    # a local cache keeps the sandbox out of %LO
 npm test
 ```
 
-`npm test` runs **114 tests** in one process (`--experimental-test-isolation=none`, because a restricted sandbox may block the runner's child processes):
+`npm test` runs **116 tests** in one process (`--experimental-test-isolation=none`, because a restricted sandbox may block the runner's child processes):
 
 - `persona.test.mjs` — resolution order, the `none` sentinel, stale and blank choices, path normalization, the subagent gate
 - `routes.test.mjs` — request guards (415 / 403 / same-origin), build failures, version envelope
-- `host-plugin.test.mjs` — the plugin surface against a fake host: section registration, tool schema, the workspace route, duplicate-name behaviour
+- `host-plugin.test.mjs` — the plugin surface against a fake host: section registration, tool schema, the workspace route, duplicate-name behaviour, and the render-time frame (prepended, byte-identical under it, absent when there is no card)
 - `host-contract.test.mjs` — the same claims against the **real** `@deepseek-ai/cordis` + `dsh-system-prompt` + `dsh-tools`, including that a disposer really unregisters
 - `client-bundle.test.mjs` — bundle hygiene: loader id, requires, injected services, slot metas, the namespace fallback, zh/en key parity, no dead translation keys
 - `client-settings.test.mjs` — the card driven through the real components: create, rename (one batch), two-click delete, single-key writes, refusals, read-only, and the row summary line

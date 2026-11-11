@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { ROUTE_WORKSPACES, SECTION_PERSONA, apply as applyPlugin, name as pluginName, NS } from "../index.js";
+import { PERSONA_FRAME, ROUTE_WORKSPACES, SECTION_PERSONA, apply as applyPlugin, name as pluginName, NS } from "../index.js";
 
 /**
  * A host stand-in with exactly the four services this plugin touches.
@@ -59,6 +59,9 @@ function agent({ sessionId = "s1", cwd = "D:\\DSH", origin } = {}) {
 
 const CARDS = { 大肥鱼: "你是一条大肥鱼。", 严肃: "你很严肃。" };
 
+/** What the section must render for a card: the frame, a blank line, the card. */
+const framed = (card) => `${PERSONA_FRAME}\n\n${card}`;
+
 test("the plugin's row id, package name and namespace are the same string", () => {
   assert.equal(pluginName, "dsh-soul");
   assert.equal(NS, "dsh-soul");
@@ -84,26 +87,51 @@ test("the section name is package-scoped, so no other plugin can collide with it
 test("section text follows the live config without re-registering", () => {
   const host = fakeHost({ config: { cards: CARDS, active: "大肥鱼" } });
   const render = () => host.sections[0].text({ agent: agent() });
-  assert.equal(render(), "你是一条大肥鱼。");
+  assert.equal(render(), framed("你是一条大肥鱼。"));
   host.state.config = { cards: CARDS, active: "严肃" };
-  assert.equal(render(), "你很严肃。");
+  assert.equal(render(), framed("你很严肃。"));
   host.state.config = { cards: CARDS, active: "严肃", sessions: { s1: "none" } };
   assert.equal(render(), "");
   // Still exactly one registration after three different config documents.
   assert.equal(host.sections.length, 1);
 });
 
+test("the frame is a render-time wrapper: the card underneath is byte-identical", async () => {
+  // Whitespace, blank lines and a trailing indent are all part of what the user
+  // wrote. A normalizing wrapper (trim, collapse) would silently rewrite a card.
+  const card = "  你是一条大肥鱼。\n\n## 尾巴\n带空格与换行  ";
+  const host = fakeHost({ config: { cards: { 大肥鱼: card }, active: "大肥鱼" } });
+  const text = host.sections[0].text({ agent: agent() });
+  assert.equal(text, framed(card));
+  assert.equal(text.startsWith(PERSONA_FRAME), true);
+  assert.equal(text.endsWith(card), true);
+  assert.equal(text.split(PERSONA_FRAME).length - 1, 1, "the frame appears exactly once");
+  // The stored card is untouched: the read-only tool still returns the raw text,
+  // not the framed prompt.
+  const read = await host.tools[0].execute({}, { agent: agent() });
+  assert.equal(read.content, card);
+});
+
+test("no card means no section — a frame never renders alone", () => {
+  // An empty frame would claim an identity the user never wrote, and it would do
+  // it in every session that deliberately has no persona.
+  const host = fakeHost({ config: { cards: {}, active: "" } });
+  assert.equal(host.sections[0].text({ agent: agent() }), "");
+  host.state.config = { cards: CARDS, active: "大肥鱼", sessions: { s1: "none" } };
+  assert.equal(host.sections[0].text({ agent: agent() }), "");
+});
+
 test("the section excludes delegated children by default and includes them on request", () => {
   const host = fakeHost({ config: { cards: CARDS, active: "大肥鱼" } });
   assert.equal(host.sections[0].text({ agent: agent({ origin: "subagent" }) }), "");
   host.state.config = { cards: CARDS, active: "大肥鱼", skipSubagents: false };
-  assert.equal(host.sections[0].text({ agent: agent({ origin: "subagent" }) }), "你是一条大肥鱼。");
+  assert.equal(host.sections[0].text({ agent: agent({ origin: "subagent" }) }), framed("你是一条大肥鱼。"));
 });
 
 test("a resolution failure costs the persona, not the whole prompt", () => {
   const host = fakeHost({ config: { cards: CARDS, active: "大肥鱼" } });
   const brokenAgent = { get session() { throw new Error("host state exploded"); } };
-  assert.equal(host.sections[0].text({ agent: brokenAgent }), "你是一条大肥鱼。");
+  assert.equal(host.sections[0].text({ agent: brokenAgent }), framed("你是一条大肥鱼。"));
   // And a section render that really throws is caught, reported, and blanked.
   host.liveConfig.get = () => { throw new Error("config gone"); };
   assert.equal(host.sections[0].text({ agent: agent() }), "");

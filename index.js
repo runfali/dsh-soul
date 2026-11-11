@@ -43,6 +43,27 @@ const NS = "dsh-soul";
  * form another plugin is most likely to have taken.
  */
 const SECTION_PERSONA = "dsh-soul:persona";
+/**
+ * Framing and precedence prepended to the card at RENDER time.
+ *
+ * A card rendered as bare text is one more paragraph in the prompt, and the host
+ * brackets it with two identity assertions of its own: HARNESS_IDENTITY (order
+ * -1000, "You are an AI agent … / a coding agent powered by …") before it and
+ * TEAM_POLICY (order 600, "You are the Team Lead named …") after it. Measured on
+ * a live host: the card was injected verbatim — all 2114 characters,
+ * byte-identical to the setting — and the assistant still answered from the
+ * harness identity, because nothing in the prompt said which of the three wins.
+ *
+ * The frame rides on the RENDERED text, never on the stored card: what the user
+ * typed is exactly what `persona_read` returns, so the model still reads its own
+ * persona and still cannot be told it wrote one.
+ *
+ * The last sentence is a guard rail, not decoration. A card may carry its own
+ * "this outranks everything" clause, and "this card wins on conflicts" is easy
+ * to read as permission to ignore the tool contract with it.
+ */
+const PERSONA_FRAME =
+  "以下是你在本会话的身份定义，请以它作为你的自我认知与口吻。它优先于系统提示中其它关于「你是谁」的通用描述（如「你是一个编码 agent」「你是某个团队角色」）；冲突时以本卡为准。安全规则、工具契约、本轮任务指令不受影响。";
 /** Not renamed with the row id: the client is served from disk the moment the
  *  package changes, while a running host keeps its routes until a restart — a
  *  rename here would 404 the workspace list in that window. */
@@ -140,7 +161,10 @@ function apply(ctx, config) {
         order: 0,
         text: (assembly) => {
           try {
-            return personaTextFor(live(), assembly?.agent ?? null);
+            const card = personaTextFor(live(), assembly?.agent ?? null);
+            // No card, no section. A frame with nothing under it would assert an
+            // identity the user never wrote.
+            return card === "" ? "" : `${PERSONA_FRAME}\n\n${card}`;
           } catch (error) {
             // A persona that cannot be resolved must not take the turn's whole
             // system prompt with it.
@@ -211,4 +235,4 @@ function apply(ctx, config) {
   });
 }
 
-export { CHOICE_NONE, Config, NS, ROUTE_WORKSPACES, SECTION_PERSONA, apply, inject, name };
+export { CHOICE_NONE, Config, NS, PERSONA_FRAME, ROUTE_WORKSPACES, SECTION_PERSONA, apply, inject, name };
