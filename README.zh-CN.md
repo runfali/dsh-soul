@@ -2,9 +2,18 @@
 
 [[English](./README.md) | 简体中文]
 
-DeepSeek Harness 的人设卡插件。在设置页里用 Markdown 写卡片，按「会话 → 工作区 → 默认卡」的顺序解析出这一轮该用哪张，作为系统提示词的一个 section 注入。模型只能读，不能写。
+**dsh-soul 给 DeepSeek Harness 加一个「灵魂」。**
 
-一个独立插件：只读写 `soul` 这一个设置命名空间，不碰别的插件的命名空间，不落磁盘文件，也没有共享状态。
+开箱的宿主是个能干的多面手，但它的身份是部署写死的：一次安装一个设定，在写 composition 的那一刻就定下来了。这个插件把身份变成你自己掌握的数据——用 Markdown 写的人设卡存在设置里，按会话和工作区解析出这一轮该用哪张，作为系统提示词里的**一个** section 注入，每轮重新解析。模型能读自己的人设，改不了它。
+
+一个独立插件：只读写 `soul` 这一个设置文档，不碰别的插件的命名空间，不落磁盘文件，也没有共享状态。
+
+## 为什么要一个「灵魂」
+
+- **一次安装，几个自己。** 同一套 harness，在这个工作区该是干脆的评审员，在那个工作区该是耐心的老师。一张卡把这件事变成设置，而不是 fork、预设，或者装第二份。
+- **灵魂是文本，所以看得见。** 助手对自己的一切认知都是可读、可 diff、可进版本库的 Markdown，而不是烧进应用里的不透明系统串。
+- **它能活过这一轮。** 卡片在拼装提示词时重新读，而不是在开会话那一刻快照下来——改完卡片，下一轮就生效，不用重启，也不用重开会话。
+- **它始终是你的。** 人设文字能进提示词，只因为你亲手打了它。没有任何工具、路由或钩子允许模型去写一张卡。
 
 > [!IMPORTANT]
 > **设计取舍（按约束代码的先后顺序）**
@@ -40,6 +49,40 @@ DeepSeek Harness 的人设卡插件。在设置页里用 Markdown 写卡片，�
 
 `skipSubagents`（默认开）让被委派的子会话不注入人设：子会话本来就继承父会话的提示词，再重复一遍既费 token 又糊掉边界。解析本身不受它影响——`persona_read` 和切换器看到的仍然是「这个会话本会注入什么」。
 
+## 环境要求
+
+- dsh `>=0.2.0-rc.2 <0.3.0-0`，其中 `0.2.1-rc.*` 各版本在 `dsh.compatibility` 里逐个列出
+- Node `>=20.18`
+- React 18 作为 peer（由宿主提供）
+- 支持 `web` 与 `desktop` 两个 profile
+
+## 安装
+
+从源码安装——`link:` 只建一个指向目录的软链，宿主直接从这个源码目录 import：
+
+```sh
+cd <checkout>
+npm ci                                          # 开发依赖只给测试用，运行时不需要
+dsh plugin --profile desktop add link:<源码目录的绝对路径>
+```
+
+web profile 把 `--profile` 换成 `web`。重启 DSH，然后打开 **设置 → 插件 → dsh-soul**；卡片在组件行里，点 包含的组件 中的 `soul ›` 进去。
+
+包发布到 registry 之后，同一条命令去掉 `link:` 就是按名字安装：
+
+```sh
+dsh plugin --profile desktop add dsh-soul
+```
+
+bundle patch（`cordis.patch.yml`）声明的加载器条目是 `id: soul`。这个 id **就是**设置命名空间：改名等于把所有已存的卡片弄丢。
+
+## 快速上手
+
+1. 打开卡片（插件 → `dsh-soul` → `soul ›`），填名字和正文 Markdown，保存。
+2. 标成 默认，或者分配给某个工作区；聊天标题栏可以按会话现切。
+3. 随便问一句。变的是系统提示词，不是工具——下一轮起卡片就生效。
+4. 想让某个会话不挂人设，在它的标题栏里选 关闭；工作区和默认层只为这一个会话跳过。
+
 ## 设置项
 
 | 键 | 类型 | 默认 | 含义 |
@@ -53,26 +96,22 @@ DeepSeek Harness 的人设卡插件。在设置页里用 Markdown 写卡片，�
 
 全部是 volatile 的，设置页改了立刻生效，不用重启。
 
-## 兼容性
+## 怎么写一张卡
 
-- dsh `>=0.2.0-rc.2 <0.3.0-0`，并且在 `dsh.compatibility` 里逐个列出了 `0.2.1-rc.1` … `0.2.1-rc.5`
-- Node `>=20.18`
-- 客户端平台 `web`；包声明支持 `web` 与 `desktop` 两个 profile
-- React 18 作为 peer（由宿主提供）
+卡是提示词，好用的都很短。值得写进去的：
 
-bundle patch（`cordis.patch.yml`）声明的加载器条目是 `id: soul`。这个 id **就是**设置命名空间：改名等于把所有已存的卡片弄丢。
+- **它是谁**：名字、角色、说话的调门。
+- **它怎么称呼你**：称呼、语言、是解释还是断言。
+- **它拒绝什么**：哪种免责声明、哪种含糊、哪种习惯会把这层身份破坏掉。
+- **它为了什么**：这个身份服务的那件事，一句话。
 
-## 值得知道的内部细节
+不值得写的：工具使用规则、安全策略，以及任何其实是「这一次任务」的指令。那些属于需要它们的那一轮；人设是常量，不是任务。
 
-设置卡背后是一个同源 `POST` 接口。`/api` 下的精确路由不过宿主的围栏，所以它们自己做检查：非 JSON 请求 `415`，跨站 `Origin`（包括 `Origin: null`，以及 `Sec-Fetch-Site` 声明跨站）`403`。判定同源用的是 `Origin` 的 host 与请求的 `Host` 头比较——**不是**与 `request.url` 比较：宿主在把请求交给路由之前会把 URL 重写成 `http://dsh.internal` 这个合成基址，拿 URL 比会把每一次真实调用都拒掉。完全没有 `Origin` 头的调用放行，那是本地脚本或桌面端的发法。
+## 内部细节
 
-| 路由 | 用途 |
-| --- | --- |
-| `/api/soul/workspaces` | 列出宿主的工作区，让设置卡按标题显示 |
+设置卡注册在 `plugins.row.config` 上，键是 `dsh-soul#soul`（`<包名>#<行 id>`）——插件管理器就是拿这个键判断「这一行能不能点开配置页」，所以插件页只列出这一行，正文都在行页面里；同一个注册还回答 summary 视图，给行描述一句摘要（卡片数量与默认卡）。卡片本体是手写的 ModuleLoader bundle，样式只取自宿主主题变量（`--dsw-alias-*`、`--dsw-radius-*`、`--dsw-focus-ring-*`），类名统一 `__sl_` 前缀，两个插件不会互相改样式；所有控件立刻写入、一个动作一批操作，不做整页保存栏。
 
-它返回 `{version: 1, …}`；版本对不上按「不可用」处理，不去猜。
-
-设置卡注册在 `plugins.row.config` 上，键是 `dsh-soul#soul`（`<包名>#<行 id>`），因此它落在组件行自己的页面上：插件页只列出这一行，点进去才打开卡片——和 dsh-ops 一样。这一行还注册了一句摘要（卡片数量与默认卡）作为行的描述。卡片本体是手写的 ModuleLoader bundle，样式全部取自宿主主题变量（`--dsw-alias-*`、`--dsw-radius-*`、`--dsw-focus-ring-*`），没有一个写死的颜色，所以明暗主题都不用兜底表。类名统一 `__sl_` 前缀：和别的插件共用类名，会让后加载的那个把前一个的样式也改掉。开关优先用宿主自带的 `Switch`（需要能 `require` 到 `@deepseek-ai/dsh-client-ui-primitives`），拿不到就渲染一个行为等价的自绘开关——手写 bundle 不能指望那个模块一定可 require。所有控件都是立刻写入，一个动作一批操作：不做整页保存栏，因为卡片列表上的草稿编辑器会把用户的意图弄丢。
+卡片背后是一个同源 `POST` 路由：`POST /api/soul/workspaces` 列出宿主的工作区，让映射能按标题显示。`/api` 下的精确路由不过宿主的围栏，所以它自己做检查——非 JSON 请求 `415`，跨站 `Origin`（包括 `Origin: null`、`Sec-Fetch-Site: cross-site`）`403`。判定同源是拿 `Origin` 的 host 与请求的 `Host` 头比较，**不是**与 `request.url` 比较：宿主在把请求交给路由之前会把 URL 重写到 `http://dsh.internal` 这个合成基址上，拿 URL 比会把每一次真实调用都拒掉。完全没有 `Origin` 头的请求放行——那是本地脚本，不是浏览器。返回体带 `{version: 1, …}`，版本对不上按「不可用」处理，不去猜。
 
 ## 开发
 
@@ -81,14 +120,14 @@ npm install --cache ./.npm-cache    # 本地缓存，避免沙箱去写 %LOCALAP
 npm test
 ```
 
-`npm test` 在同一个进程里跑 110 个测试（`--experimental-test-isolation=none`：受限沙箱里测试运行器 fork 子进程会失败）：
+`npm test` 在同一个进程里跑 **113 个测试**（`--experimental-test-isolation=none`：受限沙箱里测试运行器 fork 子进程会失败）：
 
 - `persona.test.mjs` —— 解析顺序、`none` 哨兵值、过期与空白选择、路径规范化、子会话门
 - `routes.test.mjs` —— 请求守卫（415 / 403 / 同源）、构建失败、版本信封
 - `host-plugin.test.mjs` —— 用一个假宿主验证插件面：section 注册、工具 schema、工作区路由、重名行为
 - `host-contract.test.mjs` —— 同样这些断言打真实的 `@deepseek-ai/cordis` + `dsh-system-prompt` + `dsh-tools`，包括 disposer 真的会注销
 - `client-bundle.test.mjs` —— bundle 卫生：loader id、require、注入的服务、slot 元信息、中英词条对齐、没有死词条
-- `client-settings.test.mjs` —— 用真组件驱动设置卡：新建、重命名（同一批）、两次点击删除、单键写入、被拒绝、只读
+- `client-settings.test.mjs` —— 用真组件驱动卡片：新建、重命名（同一批）、两次点击删除、单键写入、被拒绝、只读，以及组件行的摘要
 - `client-switcher.test.mjs` —— 会话切换器：三种状态、单键写入、隐藏、占住输入框
 
 客户端测试把出货的 `client.js` 载入一个小型 hooks 运行时，而不是复制一份代码，所以断言打的就是真正发布出去的那个文件。

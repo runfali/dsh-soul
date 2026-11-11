@@ -1,6 +1,6 @@
 {
   "meta": {
     "title": "Persona cards",
-    "description": "Manage Markdown persona cards, the default card, per-workspace choices and the session switcher; the card is injected into the system prompt and the model can only read it."
+    "description": "Give DSH a soul: Markdown persona cards resolved per session and per workspace, injected into the system prompt; the model can only read them."
   }
 }
