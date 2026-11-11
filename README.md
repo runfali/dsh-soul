@@ -28,7 +28,7 @@ A standalone plugin: it reads and writes exactly one settings document (`soul`) 
 
 | Surface | Where | What it does |
 | --- | --- | --- |
-| **Settings card** | Settings → Plugins → `dsh-soul` → the component row `soul ›` | Card list, editor (create / rename / edit / delete / set default), per-workspace choices, and two switches |
+| **Settings card** | Settings → Plugins → `dsh-soul` → the component row `dsh-soul ›` | Card list, editor (create / rename / edit / delete / set default), per-workspace choices, and two switches |
 | **Session switcher** | Chat header, one per conversation | Pins a card to *this* session, or turns the persona off for it |
 | **New-session switcher** | New-session page options | The same choice before the first message; the composer is held until the choice is stored |
 | **`persona_read`** | Agent tool list | Returns the card that applies to the calling session (name, text, and which layer won) |
@@ -66,7 +66,7 @@ npm ci                                          # the dev dependencies are neede
 dsh plugin --profile desktop add link:<absolute path to checkout>
 ```
 
-Use `--profile web` for the web profile. Restart DSH, then open **Settings → Plugins → dsh-soul**; the form lives on the component row, so open `soul ›` from the bundle's component list.
+Use `--profile web` for the web profile. Restart DSH, then open **Settings → Plugins → dsh-soul**; the form lives on the component row, so open `dsh-soul ›` from the bundle's component list.
 
 Once the package is published to a registry, the same command without `link:` installs it by name:
 
@@ -74,11 +74,11 @@ Once the package is published to a registry, the same command without `link:` in
 dsh plugin --profile desktop add dsh-soul
 ```
 
-The bundle patch (`cordis.patch.yml`) declares the loader entry `id: soul`. That id **is** the settings namespace: renaming it orphans every saved card.
+The bundle patch (`cordis.patch.yml`) declares the loader entry `id: dsh-soul` — the same string as the package and the settings namespace, because the plugin page prints the row id next to the module name and two different names there read as two different plugins. That id **is** the settings namespace: renaming it orphans every saved card. Before 0.2 the row was `soul`; the card still reads that namespace as a fallback, so an unrenamed profile keeps working.
 
 ## Quick start
 
-1. Open the card (Plugins → `dsh-soul` → `soul ›`), type a name and the card's Markdown, save it.
+1. Open the card (Plugins → `dsh-soul` → `dsh-soul ›`), type a name and the card's Markdown, save it.
 2. Set it as the default card, or assign it to a workspace. The chat header switches it per session.
 3. Ask something. What changed is the system prompt, not the tools — the card is in force from the next turn.
 4. To silence the persona for one session, choose off in that session's header; the workspace and default layers are skipped for it alone.
@@ -109,7 +109,7 @@ What does not: tool usage rules, safety policy, or anything that is really an in
 
 ## Under the hood
 
-The settings card is registered on `plugins.row.config` under the key `dsh-soul#soul` (`<package>#<row id>`), which is what the plugin manager checks before it lets a component row open a page. The plugin page therefore lists the row and nothing else; the row also answers the summary view with one line (card count and default). The card itself is a hand-written ModuleLoader bundle styled only from host theme tokens (`--dsw-alias-*`, `--dsw-radius-*`, `--dsw-focus-ring-*`), with all classes prefixed `__sl_` so two plugins cannot restyle each other, and every control writes immediately — one batch per action, no page-level save bar.
+The settings card is registered on `plugins.row.config` under the key `dsh-soul#dsh-soul` (`<package>#<row id>`), plus the legacy `dsh-soul#soul`, which is what the plugin manager checks before it lets a component row open a page. The plugin page therefore lists the row and nothing else; the row also answers the summary view with one line (card count and default). The card itself is a hand-written ModuleLoader bundle styled only from host theme tokens (`--dsw-alias-*`, `--dsw-radius-*`, `--dsw-focus-ring-*`), with all classes prefixed `__sl_` so two plugins cannot restyle each other, and every control writes immediately — one batch per action, no page-level save bar.
 
 One same-origin `POST` route backs the card: `POST /api/soul/workspaces` lists the host's workspaces so a mapping can be offered by title. Exact `/api` routes bypass the harness fence, so the route does its own checks — non-JSON is refused with `415`, and a cross-site `Origin` (or `Origin: null`, or `Sec-Fetch-Site: cross-site`) with `403`. Same-origin is decided by comparing the `Origin` host with the request's `Host` header, **not** with `request.url`: the host rewrites the URL onto a synthetic `http://dsh.internal` base before the route sees it, so a URL-based comparison would refuse every real call. A request with no `Origin` at all is allowed — that is a local script, not a browser. The response carries `{version: 1, …}`; a version mismatch is treated as unavailable rather than guessed at.
 
@@ -120,13 +120,13 @@ npm install --cache ./.npm-cache    # a local cache keeps the sandbox out of %LO
 npm test
 ```
 
-`npm test` runs **113 tests** in one process (`--experimental-test-isolation=none`, because a restricted sandbox may block the runner's child processes):
+`npm test` runs **114 tests** in one process (`--experimental-test-isolation=none`, because a restricted sandbox may block the runner's child processes):
 
 - `persona.test.mjs` — resolution order, the `none` sentinel, stale and blank choices, path normalization, the subagent gate
 - `routes.test.mjs` — request guards (415 / 403 / same-origin), build failures, version envelope
 - `host-plugin.test.mjs` — the plugin surface against a fake host: section registration, tool schema, the workspace route, duplicate-name behaviour
 - `host-contract.test.mjs` — the same claims against the **real** `@deepseek-ai/cordis` + `dsh-system-prompt` + `dsh-tools`, including that a disposer really unregisters
-- `client-bundle.test.mjs` — bundle hygiene: loader id, requires, injected services, slot metas, zh/en key parity, no dead translation keys
+- `client-bundle.test.mjs` — bundle hygiene: loader id, requires, injected services, slot metas, the namespace fallback, zh/en key parity, no dead translation keys
 - `client-settings.test.mjs` — the card driven through the real components: create, rename (one batch), two-click delete, single-key writes, refusals, read-only, and the row summary line
 - `client-switcher.test.mjs` — the session switcher: three states, single-key writes, hidden state, composer hold
 

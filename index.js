@@ -28,16 +28,24 @@ import z from "@deepseek-ai/schemastery";
 import { CHOICE_NONE, agentTarget, personaTextFor, resolveCard } from "./persona.js";
 import { ROUTE_VERSION, oneLine, registerJsonRoute } from "./routes.js";
 
-/** Entry id inside the composition; also the settings namespace. */
-const name = "soul";
+/**
+ * Entry id inside the composition; also the settings namespace. One name for the
+ * package, the row and the namespace, because the plugin page prints the row id
+ * and the module name side by side — two different names there read as two
+ * different things to everyone except the person who wrote the patch.
+ */
+const name = "dsh-soul";
 /** Settings namespace this plugin reads and writes (== the cordis.patch.yml row id). */
-const NS = "soul";
+const NS = "dsh-soul";
 /**
  * System-prompt section name. Namespaced by package rather than by feature: the
  * host throws on a duplicate section name, and `soul:persona` is the generic
  * form another plugin is most likely to have taken.
  */
 const SECTION_PERSONA = "dsh-soul:persona";
+/** Not renamed with the row id: the client is served from disk the moment the
+ *  package changes, while a running host keeps its routes until a restart — a
+ *  rename here would 404 the workspace list in that window. */
 const ROUTE_WORKSPACES = "/api/soul/workspaces";
 /**
  * Only REQUIRED services are declared. `connection` and `workspaceRegistry` are

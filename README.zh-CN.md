@@ -28,7 +28,7 @@
 
 | 界面 | 位置 | 作用 |
 | --- | --- | --- |
-| **设置卡** | 设置 → 插件 → `dsh-soul` → 包含的组件 → `soul ›` | 卡片列表、编辑器（新建 / 重命名 / 改正文 / 删除 / 设为默认）、按工作区的选择、两个开关 |
+| **设置卡** | 设置 → 插件 → `dsh-soul` → 包含的组件 → `dsh-soul ›` | 卡片列表、编辑器（新建 / 重命名 / 改正文 / 删除 / 设为默认）、按工作区的选择、两个开关 |
 | **会话切换器** | 聊天标题栏，每个会话一个 | 给「这个会话」指定卡片，或者把这个会话的人设关掉 |
 | **新会话切换器** | 新会话页的选项区 | 发第一条消息之前就能选；保存期间占住输入框 |
 | **`persona_read`** | agent 的工具列表 | 返回调用方会话生效的卡片（名字、正文，以及是哪一层选中的） |
@@ -66,7 +66,7 @@ npm ci                                          # 开发依赖只给测试用，
 dsh plugin --profile desktop add link:<源码目录的绝对路径>
 ```
 
-web profile 把 `--profile` 换成 `web`。重启 DSH，然后打开 **设置 → 插件 → dsh-soul**；卡片在组件行里，点 包含的组件 中的 `soul ›` 进去。
+web profile 把 `--profile` 换成 `web`。重启 DSH，然后打开 **设置 → 插件 → dsh-soul**；卡片在组件行里，点 包含的组件 中的 `dsh-soul ›` 进去。
 
 包发布到 registry 之后，同一条命令去掉 `link:` 就是按名字安装：
 
@@ -74,11 +74,11 @@ web profile 把 `--profile` 换成 `web`。重启 DSH，然后打开 **设置 �
 dsh plugin --profile desktop add dsh-soul
 ```
 
-bundle patch（`cordis.patch.yml`）声明的加载器条目是 `id: soul`。这个 id **就是**设置命名空间：改名等于把所有已存的卡片弄丢。
+bundle patch（`cordis.patch.yml`）声明的加载器条目是 `id: dsh-soul`——和包名、设置命名空间是同一个字符串：插件页会把行 id 和模块名并排印出来，两个不同的名字在那儿看着就像两个插件。这个 id **就是**设置命名空间：改名等于把所有已存的卡片弄丢。0.2 之前这一行叫 `soul`，卡片仍会回退读取那个命名空间，所以还没改名的 profile 也能用。
 
 ## 快速上手
 
-1. 打开卡片（插件 → `dsh-soul` → `soul ›`），填名字和正文 Markdown，保存。
+1. 打开卡片（插件 → `dsh-soul` → `dsh-soul ›`），填名字和正文 Markdown，保存。
 2. 标成 默认，或者分配给某个工作区；聊天标题栏可以按会话现切。
 3. 随便问一句。变的是系统提示词，不是工具——下一轮起卡片就生效。
 4. 想让某个会话不挂人设，在它的标题栏里选 关闭；工作区和默认层只为这一个会话跳过。
@@ -109,7 +109,7 @@ bundle patch（`cordis.patch.yml`）声明的加载器条目是 `id: soul`。这
 
 ## 内部细节
 
-设置卡注册在 `plugins.row.config` 上，键是 `dsh-soul#soul`（`<包名>#<行 id>`）——插件管理器就是拿这个键判断「这一行能不能点开配置页」，所以插件页只列出这一行，正文都在行页面里；同一个注册还回答 summary 视图，给行描述一句摘要（卡片数量与默认卡）。卡片本体是手写的 ModuleLoader bundle，样式只取自宿主主题变量（`--dsw-alias-*`、`--dsw-radius-*`、`--dsw-focus-ring-*`），类名统一 `__sl_` 前缀，两个插件不会互相改样式；所有控件立刻写入、一个动作一批操作，不做整页保存栏。
+设置卡注册在 `plugins.row.config` 上，键是 `dsh-soul#dsh-soul`（`<包名>#<行 id>`），同时保留旧的 `dsh-soul#soul`——插件管理器就是拿这个键判断「这一行能不能点开配置页」，所以插件页只列出这一行，正文都在行页面里；同一个注册还回答 summary 视图，给行描述一句摘要（卡片数量与默认卡）。卡片本体是手写的 ModuleLoader bundle，样式只取自宿主主题变量（`--dsw-alias-*`、`--dsw-radius-*`、`--dsw-focus-ring-*`），类名统一 `__sl_` 前缀，两个插件不会互相改样式；所有控件立刻写入、一个动作一批操作，不做整页保存栏。
 
 卡片背后是一个同源 `POST` 路由：`POST /api/soul/workspaces` 列出宿主的工作区，让映射能按标题显示。`/api` 下的精确路由不过宿主的围栏，所以它自己做检查——非 JSON 请求 `415`，跨站 `Origin`（包括 `Origin: null`、`Sec-Fetch-Site: cross-site`）`403`。判定同源是拿 `Origin` 的 host 与请求的 `Host` 头比较，**不是**与 `request.url` 比较：宿主在把请求交给路由之前会把 URL 重写到 `http://dsh.internal` 这个合成基址上，拿 URL 比会把每一次真实调用都拒掉。完全没有 `Origin` 头的请求放行——那是本地脚本，不是浏览器。返回体带 `{version: 1, …}`，版本对不上按「不可用」处理，不去猜。
 
@@ -120,13 +120,13 @@ npm install --cache ./.npm-cache    # 本地缓存，避免沙箱去写 %LOCALAP
 npm test
 ```
 
-`npm test` 在同一个进程里跑 **113 个测试**（`--experimental-test-isolation=none`：受限沙箱里测试运行器 fork 子进程会失败）：
+`npm test` 在同一个进程里跑 **114 个测试**（`--experimental-test-isolation=none`：受限沙箱里测试运行器 fork 子进程会失败）：
 
 - `persona.test.mjs` —— 解析顺序、`none` 哨兵值、过期与空白选择、路径规范化、子会话门
 - `routes.test.mjs` —— 请求守卫（415 / 403 / 同源）、构建失败、版本信封
 - `host-plugin.test.mjs` —— 用一个假宿主验证插件面：section 注册、工具 schema、工作区路由、重名行为
 - `host-contract.test.mjs` —— 同样这些断言打真实的 `@deepseek-ai/cordis` + `dsh-system-prompt` + `dsh-tools`，包括 disposer 真的会注销
-- `client-bundle.test.mjs` —— bundle 卫生：loader id、require、注入的服务、slot 元信息、中英词条对齐、没有死词条
+- `client-bundle.test.mjs` —— bundle 卫生：loader id、require、注入的服务、slot 元信息、命名空间回退、中英词条对齐、没有死词条
 - `client-settings.test.mjs` —— 用真组件驱动卡片：新建、重命名（同一批）、两次点击删除、单键写入、被拒绝、只读，以及组件行的摘要
 - `client-switcher.test.mjs` —— 会话切换器：三种状态、单键写入、隐藏、占住输入框
 

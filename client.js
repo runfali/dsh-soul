@@ -121,18 +121,23 @@ select.__sl_input{appearance:none;padding-right:30px;background-image:url("data:
     var NS = "dshSoul";
     var inject = ["slots", "locale", "configForms"];
     /** The settings namespace this card edits (== the cordis.patch.yml row id). */
-    var CONFIG_NS = "soul";
+    var CONFIG_NS = "dsh-soul";
+    /** The row id before the names were unified. Kept as a fallback so a profile
+     *  that still declares `- id: soul` keeps working instead of showing a card
+     *  with no settings behind it. */
+    var LEGACY_CONFIG_NS = "soul";
     /** The bundle (package) name the host keys this plugin by. */
     var BUNDLE_KEY = "dsh-soul";
     /** The composition row id this bundle inserts (see cordis.patch.yml). */
-    var ROW_ID = "soul";
+    var ROW_ID = "dsh-soul";
     /**
-     * `plugins.row.config` is keyed `<package>#<row id>`. That exact string is what
-     * the plugin manager looks for before it lets a component row open a config
-     * page at all (`rowConfigKey` in its client half), so the literal matters
-     * more than the shape: a wrong key silently leaves the row unclickable.
+     * `plugins.row.config` is keyed `<package>#<row id>`, and that exact string is
+     * what the plugin manager looks for before it lets a component row open a
+     * config page (`rowConfigKey` in its client half). Both row ids are
+     * registered: the picture on screen is the host's, but whether the row opens
+     * at all is decided by this key matching the profile's patch row.
      */
-    var ROW_CONFIG_KEY = BUNDLE_KEY + "#" + ROW_ID;
+    var ROW_CONFIG_KEYS = [BUNDLE_KEY + "#" + ROW_ID, BUNDLE_KEY + "#" + LEGACY_CONFIG_NS];
     var WORKSPACES_URL = "/api/soul/workspaces";
     /** The only payload shape this build renders. */
     var WIRE_VERSION = 1;
@@ -1038,27 +1043,50 @@ select.__sl_input{appearance:none;padding-right:30px;background-image:url("data:
 
     // ── plugin ──────────────────────────────────────────────────────────────
 
+    /** A scope is usable only when the host already resolved it. */
+    function scopeReady(scope) {
+      try {
+        var snapshot = scope && typeof scope.getSnapshot === "function" ? scope.getSnapshot() : null;
+        return Boolean(snapshot && snapshot.status === "ready");
+      } catch (error) {
+        return false;
+      }
+    }
+
+    /** The `dsh-soul` namespace, or the pre-0.2 `soul` one on a profile whose
+     *  patch row has not been renamed yet. */
+    function pickScope(ctx) {
+      var primary = null;
+      var legacy = null;
+      try { primary = ctx.configForms.get(CONFIG_NS); } catch (error) { primary = null; }
+      if (scopeReady(primary)) return primary;
+      try { legacy = ctx.configForms.get(LEGACY_CONFIG_NS); } catch (error) { legacy = null; }
+      return scopeReady(legacy) ? legacy : primary;
+    }
+
     function apply(ctx) {
       var t = ctx.locale.bind(NS);
       ctx.effect(function () { return ctx.locale.register(NS, { zh: zh, en: en }); }, "dsh-soul: dictionaries");
       // ONE scope for the namespace, shared by the settings card and both
       // switcher mounts. Two binds would each keep their own revision
       // bookkeeping over one host document.
-      var scope = ctx.configForms.get(CONFIG_NS);
+      var scope = pickScope(ctx);
       // The form lives on the component row's own page, not on the plugin page:
-      // the plugin page only lists the row ("soul ›"), and opening it lands here.
-      // A summary line is still registered — the manager shows it as the row's
-      // description when the row has none of its own.
-      ctx.slots.inject("plugins.row.config", function () {
-        return ctx.slots.register({
-          name: "plugins.row.config",
-          key: ROW_CONFIG_KEY,
-          locale: NS,
-        }, function (props) {
-          if (props.view === "summary") {
-            return h(RowSummary, { scope: scope, t: t, locale: ctx.locale });
-          }
-          return h(SoulSection, Object.assign({}, props, { scope: scope, t: t, locale: ctx.locale }));
+      // the plugin page only lists the row, and opening it lands here. A summary
+      // line is still registered — the manager shows it as the row's description
+      // when the row has none of its own.
+      ROW_CONFIG_KEYS.forEach(function (key) {
+        ctx.slots.inject("plugins.row.config", function () {
+          return ctx.slots.register({
+            name: "plugins.row.config",
+            key: key,
+            locale: NS,
+          }, function (props) {
+            if (props.view === "summary") {
+              return h(RowSummary, { scope: scope, t: t, locale: ctx.locale });
+            }
+            return h(SoulSection, Object.assign({}, props, { scope: scope, t: t, locale: ctx.locale }));
+          });
         });
       });
       ctx.slots.inject("conversation.session.header.actions", function () {

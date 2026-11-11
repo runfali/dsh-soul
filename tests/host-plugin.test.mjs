@@ -59,9 +59,9 @@ function agent({ sessionId = "s1", cwd = "D:\\DSH", origin } = {}) {
 
 const CARDS = { 大肥鱼: "你是一条大肥鱼。", 严肃: "你很严肃。" };
 
-test("the plugin identifies itself as the `soul` entry, not as a package name", () => {
-  assert.equal(pluginName, "soul");
-  assert.equal(NS, "soul");
+test("the plugin's row id, package name and namespace are the same string", () => {
+  assert.equal(pluginName, "dsh-soul");
+  assert.equal(NS, "dsh-soul");
 });
 
 test("the persona section is registered once, at the front, without interpolation", () => {

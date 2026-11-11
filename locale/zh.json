@@ -1,6 +1,6 @@
 {
   "meta": {
-    "title": "人设卡",
+    "title": "dsh-soul",
     "description": "给 DSH 加一个灵魂：在设置里写 Markdown 人设卡，按 会话 → 工作区 → 默认卡 解析后注入系统提示词，模型只读。"
   }
 }

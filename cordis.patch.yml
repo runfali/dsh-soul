@@ -4,9 +4,11 @@
 # standard profile bundle: `dsh plugin --profile <p> add dsh-soul` installs and
 # mounts it without hand-editing cordis.patch.yml.
 #
-# `id: soul` is NOT cosmetic — it is the settings namespace this plugin reads and
-# writes (`ctx.configForms.get("soul")` on the client, `ctx.settings` on the
-# host). Renaming it orphans every saved card.
+# `id: dsh-soul` is NOT cosmetic — it is the settings namespace this plugin reads
+# and writes (`ctx.configForms.get("dsh-soul")` on the client, `ctx.settings` on
+# the host), and the host prints it next to the module name on the plugin page.
+# One name for the package, the row and the namespace is what keeps that page
+# readable; renaming it orphans every saved card.
 - insert:
-    - id: soul
+    - id: dsh-soul
       name: 'dsh-soul'

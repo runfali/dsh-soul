@@ -52,38 +52,58 @@ test("apply registers the settings card plus both switcher mounts, once each", a
   const names = slots.map((entry) => entry.meta.name);
   assert.deepEqual(names, [
     "plugins.row.config",
+    "plugins.row.config",
     "conversation.session.header.actions",
     "conversation.hero.options",
   ]);
   // `<package>#<row id>` is what the plugin manager matches before it lets the
   // component row open a config page; a different string leaves it unclickable.
-  assert.equal(slots[0].meta.key, "dsh-soul#soul");
+  // Both the current and the pre-0.2 row id are registered, so a profile that
+  // has not been renamed keeps a clickable row.
+  assert.deepEqual(slots.slice(0, 2).map((entry) => entry.meta.key), ["dsh-soul#dsh-soul", "dsh-soul#soul"]);
   assert.equal(slots[0].meta.locale, "dshSoul");
-  assert.equal(slots[1].meta.id, "soul-persona");
-  assert.equal(slots[2].meta.id, "soul-persona-hero");
-  assert.deepEqual(slots.map((entry) => entry.meta.order), [undefined, 40, 40]);
+  assert.equal(slots[2].meta.id, "soul-persona");
+  assert.equal(slots[3].meta.id, "soul-persona-hero");
+  assert.deepEqual(slots.map((entry) => entry.meta.order), [undefined, undefined, 40, 40]);
 });
 
-test("the settings scope is bound to the `soul` namespace, once, for every mount", async () => {
+test("the settings scope is bound to the `dsh-soul` namespace, once, for every mount", async () => {
   const { plugin } = await bootClient();
   const scope = { getSnapshot: () => ({ status: "ready", value: {} }), subscribe: () => () => {} };
   const { asks } = applyClient(plugin, { scope });
   const configAks = asks.filter((entry) => entry.configNs !== undefined);
-  assert.deepEqual(configAks.map((entry) => entry.configNs), ["soul"]);
+  assert.deepEqual(configAks.map((entry) => entry.configNs), ["dsh-soul"]);
+});
+
+test("a profile still declaring the old `soul` row keeps working", async () => {
+  const { plugin } = await bootClient();
+  const pending = { getSnapshot: () => ({ status: "pending" }) };
+  const ready = { getSnapshot: () => ({ status: "ready", value: { cards: { A: "x" } } }), subscribe: () => () => {} };
+  // New namespace unresolved, old one ready: the old scope is the one used, so a
+  // not-yet-renamed profile edits its own settings instead of showing nothing.
+  const legacy = applyClient(plugin, { scope: (ns) => (ns === "soul" ? ready : pending) });
+  assert.deepEqual(legacy.asks.filter((entry) => entry.configNs !== undefined).map((entry) => entry.configNs), ["dsh-soul", "soul"]);
+  const panel = legacy.slots.find((slot) => slot.meta.name === "plugins.row.config").component({ view: "summary" });
+  assert.equal(panel.props.scope, ready);
+  // Neither resolved: the primary scope is returned anyway, so the card renders
+  // its "unavailable" state instead of throwing.
+  const none = applyClient(plugin, { scope: () => pending });
+  assert.deepEqual(none.asks.filter((entry) => entry.configNs !== undefined).map((entry) => entry.configNs), ["dsh-soul", "soul"]);
+  assert.equal(none.slots.find((slot) => slot.meta.name === "plugins.row.config").component({ view: "summary" }).props.scope, pending);
 });
 
 test("hiding the switcher at boot skips the hero registration only", async () => {
   const { plugin } = await bootClient();
   const scope = { getSnapshot: () => ({ status: "ready", value: { showPersonaSwitcher: false } }), subscribe: () => () => {} };
   const { slots } = applyClient(plugin, { scope });
-  assert.deepEqual(slots.map((entry) => entry.meta.name), ["plugins.row.config", "conversation.session.header.actions"]);
+  assert.deepEqual(slots.map((entry) => entry.meta.name), ["plugins.row.config", "plugins.row.config", "conversation.session.header.actions"]);
 });
 
 test("a scope that cannot be read at boot still registers everything", async () => {
   const { plugin } = await bootClient();
   const scope = { getSnapshot: () => { throw new Error("scope not ready"); } };
   const { slots } = applyClient(plugin, { scope });
-  assert.equal(slots.length, 3);
+  assert.equal(slots.length, 4);
 });
 
 test("both dictionaries carry exactly the same keys", async () => {

@@ -122,9 +122,11 @@ export function applyClient(plugin, { scope, localeDict = { zh: {}, en: {} }, co
       return typeof dispose === "function" ? dispose : () => {};
     },
     configForms: {
+      // `scope` may be one scope or a lookup, so a test can give the new and the
+      // legacy namespace different states.
       get: (ns) => {
         asks.push({ configNs: ns });
-        return scope;
+        return typeof scope === "function" ? scope(ns) : scope;
       },
     },
     slots: {
