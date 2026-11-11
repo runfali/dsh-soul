@@ -51,11 +51,13 @@ test("apply registers the settings card plus both switcher mounts, once each", a
   const { slots } = applyClient(plugin, { scope });
   const names = slots.map((entry) => entry.meta.name);
   assert.deepEqual(names, [
-    "plugins.bundle.config",
+    "plugins.row.config",
     "conversation.session.header.actions",
     "conversation.hero.options",
   ]);
-  assert.equal(slots[0].meta.key, "dsh-soul");
+  // `<package>#<row id>` is what the plugin manager matches before it lets the
+  // component row open a config page; a different string leaves it unclickable.
+  assert.equal(slots[0].meta.key, "dsh-soul#soul");
   assert.equal(slots[0].meta.locale, "dshSoul");
   assert.equal(slots[1].meta.id, "soul-persona");
   assert.equal(slots[2].meta.id, "soul-persona-hero");
@@ -74,7 +76,7 @@ test("hiding the switcher at boot skips the hero registration only", async () =>
   const { plugin } = await bootClient();
   const scope = { getSnapshot: () => ({ status: "ready", value: { showPersonaSwitcher: false } }), subscribe: () => () => {} };
   const { slots } = applyClient(plugin, { scope });
-  assert.deepEqual(slots.map((entry) => entry.meta.name), ["plugins.bundle.config", "conversation.session.header.actions"]);
+  assert.deepEqual(slots.map((entry) => entry.meta.name), ["plugins.row.config", "conversation.session.header.actions"]);
 });
 
 test("a scope that cannot be read at boot still registers everything", async () => {

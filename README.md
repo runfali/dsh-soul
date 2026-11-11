@@ -19,7 +19,7 @@ A standalone plugin: it reads and writes exactly one settings document (`soul`) 
 
 | Surface | Where | What it does |
 | --- | --- | --- |
-| **Settings card** | Settings → Plugins → *Persona cards* | Card list, editor (create / rename / edit / delete / set default), per-workspace choices, and two switches |
+| **Settings card** | Settings → Plugins → `dsh-soul` → 包含的组件 → `soul ›` | Card list, editor (create / rename / edit / delete / set default), per-workspace choices, and two switches |
 | **Session switcher** | Chat header, one per conversation | Pins a card to *this* session, or turns the persona off for it |
 | **New-session switcher** | New-session page options | The same choice before the first message; the composer is held until the choice is stored |
 | **`persona_read`** | Agent tool list | Returns the card that applies to the calling session (name, text, and which layer won) |
@@ -72,7 +72,7 @@ One same-origin `POST` endpoint backs the settings card. Exact `/api` routes byp
 
 It answers `{version: 1, …}`; a version mismatch is treated as "unavailable" rather than guessed at.
 
-The settings card is a hand-written ModuleLoader bundle that styles itself from host theme tokens (`--dsw-alias-*`, `--dsw-radius-*`, `--dsw-focus-ring-*`) with no literal colours, so light and dark themes both work without a fallback table. Its classes are all `__sl_*`: sharing names with another plugin would let whichever loads last restyle the other. The switch prefers the host's own `Switch` when `@deepseek-ai/dsh-client-ui-primitives` is requireable and otherwise renders an element-equivalent one, because a hand-written bundle cannot count on that module. Every control writes immediately, in one batch per action — there is no page-level save bar, since a draft editor over a card list would lose the user's intent.
+The settings card is registered on `plugins.row.config` under the key `dsh-soul#soul` (`<package>#<row id>`), so it lives on the component row's own page: the plugin page only lists the row, and clicking it opens the card — the same shape dsh-ops uses. The row also gets a one-line summary (card count and default) for the row description. The card itself is a hand-written ModuleLoader bundle that styles itself from host theme tokens (`--dsw-alias-*`, `--dsw-radius-*`, `--dsw-focus-ring-*`) with no literal colours, so light and dark themes both work without a fallback table. Its classes are all `__sl_*`: sharing names with another plugin would let whichever loads last restyle the other. The switch prefers the host's own `Switch` when `@deepseek-ai/dsh-client-ui-primitives` is requireable and otherwise renders an element-equivalent one, because a hand-written bundle cannot count on that module. Every control writes immediately, in one batch per action — there is no page-level save bar, since a draft editor over a card list would lose the user's intent.
 
 ## Development
 

@@ -6,7 +6,9 @@
  * `require`. `id` MUST equal the package name — the loader keys bundles by it.
  *
  * Three surfaces, one settings scope:
- *   plugins.bundle.config              the settings card
+ *   plugins.row.config                  the settings card, on the component row's
+ *                                       own page (the plugin page only lists the
+ *                                       row; clicking it opens this card)
  *   conversation.session.header.actions the per-session switcher (chat header)
  *   conversation.hero.options           the same switcher on the new-session page
  *
@@ -36,6 +38,7 @@ window.__ModuleLoader__.load({
 .__sl_root p{margin:0;line-height:1.55;overflow-wrap:anywhere}
 .__sl_root *{box-sizing:border-box}
 .__sl_lead{margin:0;font-size:12px;line-height:1.6;color:var(--dsw-alias-label-tertiary)}
+.__sl_summary{font-size:13px;line-height:1.5;color:var(--dsw-alias-label-tertiary)}
 /* One bordered card per group: the head is the title and its own description,
    the shaded body is what can be changed inside it. */
 .__sl_card{display:flex;flex-direction:column;gap:10px;min-width:0;margin:0;padding:14px;border:.5px solid var(--dsw-alias-border-l2);border-radius:var(--dsw-radius-lg)}
@@ -119,8 +122,17 @@ select.__sl_input{appearance:none;padding-right:30px;background-image:url("data:
     var inject = ["slots", "locale", "configForms"];
     /** The settings namespace this card edits (== the cordis.patch.yml row id). */
     var CONFIG_NS = "soul";
-    /** The bundle key the host resolves the settings card by. */
+    /** The bundle (package) name the host keys this plugin by. */
     var BUNDLE_KEY = "dsh-soul";
+    /** The composition row id this bundle inserts (see cordis.patch.yml). */
+    var ROW_ID = "soul";
+    /**
+     * `plugins.row.config` is keyed `<package>#<row id>`. That exact string is what
+     * the plugin manager looks for before it lets a component row open a config
+     * page at all (`rowConfigKey` in its client half), so the literal matters
+     * more than the shape: a wrong key silently leaves the row unclickable.
+     */
+    var ROW_CONFIG_KEY = BUNDLE_KEY + "#" + ROW_ID;
     var WORKSPACES_URL = "/api/soul/workspaces";
     /** The only payload shape this build renders. */
     var WIRE_VERSION = 1;
@@ -130,6 +142,9 @@ select.__sl_input{appearance:none;padding-right:30px;background-image:url("data:
 
     var zh = {
       intro: "人设卡的内容会注入系统提示词，按 会话选择 → 工作区选择 → 默认卡 的顺序取一个。卡片由你独写，模型只能读。",
+      rowSummaryNone: "还没有人设卡，点进去就能建第一张。",
+      rowSummary: "人设卡 {count} 张。",
+      rowSummaryDefault: "人设卡 {count} 张，默认「{name}」。",
       unavailable: "这个宿主版本没有提供插件设置接口，人设卡暂时无法在这里编辑。",
       loading: "正在读取设置…",
       saving: "正在保存…",
@@ -184,6 +199,9 @@ select.__sl_input{appearance:none;padding-right:30px;background-image:url("data:
 
     var en = {
       intro: "Card text is injected into the system prompt. Order: session choice, then workspace choice, then the default card. Cards are yours to write; the model can only read them.",
+      rowSummaryNone: "No persona cards yet — open this to write the first one.",
+      rowSummary: "{count} persona card(s).",
+      rowSummaryDefault: "{count} persona card(s), default “{name}”.",
       unavailable: "This host version exposes no plugin settings API, so persona cards cannot be edited here.",
       loading: "Reading settings…",
       saving: "Saving…",
@@ -577,6 +595,33 @@ select.__sl_input{appearance:none;padding-right:30px;background-image:url("data:
         disabled: props.disabled === true,
         onClick: function () { if (props.disabled !== true) props.onChange(!checked); },
       }, h("span", { className: "__sl_knob" }));
+    }
+
+    /**
+     * One line for the component row, the way dsh-ops describes its own row: how
+     * many cards exist and which one is the default, nothing that needs a click.
+     */
+    function summaryText(t, value) {
+      var names = usableCardNames(value && value.cards);
+      if (names.length === 0) return t("rowSummaryNone");
+      var active = value && typeof value.active === "string" ? value.active : "";
+      var line = names.indexOf(active) >= 0 ? t("rowSummaryDefault") : t("rowSummary");
+      return line.replace("{count}", String(names.length)).replace("{name}", active);
+    }
+
+    function RowSummary(props) {
+      useLocale(props.locale);
+      var scope = props.scope;
+      var [snapshot, setSnapshot] = react.useState(function () {
+        return scope && typeof scope.getSnapshot === "function" ? scope.getSnapshot() : { status: "ready", value: {} };
+      });
+      react.useEffect(function () {
+        var alive = true;
+        var sync = function () { if (alive && scope && typeof scope.getSnapshot === "function") setSnapshot(scope.getSnapshot()); };
+        var un = scope && typeof scope.subscribe === "function" ? scope.subscribe(sync) : null;
+        return function () { alive = false; if (un) un(); };
+      }, [scope]);
+      return h("span", { className: "__sl_summary" }, summaryText(props.t, snapshot.value));
     }
 
     function SoulSection(props) {
@@ -1000,12 +1045,19 @@ select.__sl_input{appearance:none;padding-right:30px;background-image:url("data:
       // switcher mounts. Two binds would each keep their own revision
       // bookkeeping over one host document.
       var scope = ctx.configForms.get(CONFIG_NS);
-      ctx.slots.inject("plugins.bundle.config", function () {
+      // The form lives on the component row's own page, not on the plugin page:
+      // the plugin page only lists the row ("soul ›"), and opening it lands here.
+      // A summary line is still registered — the manager shows it as the row's
+      // description when the row has none of its own.
+      ctx.slots.inject("plugins.row.config", function () {
         return ctx.slots.register({
-          name: "plugins.bundle.config",
-          key: BUNDLE_KEY,
+          name: "plugins.row.config",
+          key: ROW_CONFIG_KEY,
           locale: NS,
         }, function (props) {
+          if (props.view === "summary") {
+            return h(RowSummary, { scope: scope, t: t, locale: ctx.locale });
+          }
           return h(SoulSection, Object.assign({}, props, { scope: scope, t: t, locale: ctx.locale }));
         });
       });

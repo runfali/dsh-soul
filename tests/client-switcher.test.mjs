@@ -54,7 +54,7 @@ test("both switcher slots are registered", async () => {
   const names = applied.slots.map((slot) => slot.meta.name);
   assert.ok(names.includes("conversation.session.header.actions"));
   assert.ok(names.includes("conversation.hero.options"));
-  assert.ok(names.includes("plugins.bundle.config"));
+  assert.ok(names.includes("plugins.row.config"));
 });
 
 test("a session choice is shown as-is", async () => {

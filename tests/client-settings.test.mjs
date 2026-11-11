@@ -33,7 +33,7 @@ async function mountSettings({ config = BASE_CONFIG, refuse = false, writable = 
   const { plugin, mount } = await bootClient({ fetch });
   const scope = makeScope(config, { refuse, writable, base });
   const applied = applyClient(plugin, { scope, localeDict: plugin.__test.dictionaries });
-  const entry = applied.slots.find((slot) => slot.meta.name === "plugins.bundle.config");
+  const entry = applied.slots.find((slot) => slot.meta.name === "plugins.row.config");
   const element = entry.component({});
   let view = mount("settings", element.type, element.props);
   view.runEffects();
@@ -309,4 +309,43 @@ test("the preview truncates by code point, never mid-character", async () => {
   assert.equal(preview, "🐟".repeat(64) + "…");
   assert.equal(Array.from(preview).length, 65);
   assert.equal(plugin.__test.cardPreview("短\n第二行"), "短");
+});
+
+test("the component row's summary line counts the cards and names the default", async () => {
+  const { plugin, mount } = await bootClient();
+  const scope = makeScope(BASE_CONFIG);
+  const applied = applyClient(plugin, { scope, localeDict: plugin.__test.dictionaries });
+  const entry = applied.slots.find((slot) => slot.meta.name === "plugins.row.config");
+  const panel = entry.component({ view: "summary" });
+  const view = mount("summary", panel.type, panel.props);
+  view.runEffects();
+  assert.equal(textOf(view.tree), "人设卡 2 张，默认「大肥鱼」。");
+});
+
+test("the summary line says so when there is no card yet", async () => {
+  const { plugin, mount } = await bootClient();
+  const scope = makeScope({ ...BASE_CONFIG, cards: {}, active: "" });
+  const applied = applyClient(plugin, { scope, localeDict: plugin.__test.dictionaries });
+  const entry = applied.slots.find((slot) => slot.meta.name === "plugins.row.config");
+  const panel = entry.component({ view: "summary" });
+  const view = mount("summary-empty", panel.type, panel.props);
+  view.runEffects();
+  assert.equal(textOf(view.tree), "还没有人设卡，点进去就能建第一张。");
+});
+
+test("the row's page view is the editable card, not the one-liner", async () => {
+  const { plugin, mount } = await bootClient();
+  const scope = makeScope(BASE_CONFIG);
+  const applied = applyClient(plugin, { scope, localeDict: plugin.__test.dictionaries });
+  const entry = applied.slots.find((slot) => slot.meta.name === "plugins.row.config");
+  assert.equal(entry.component({ view: "summary" }).type.name, "RowSummary");
+  const page = entry.component({ view: "page" });
+  assert.equal(page.type.name, "SoulSection");
+  const view = mount("row-page", page.type, page.props);
+  view.runEffects();
+  await settle();
+  view.rerender().runEffects();
+  await settle();
+  one(view.rerender().tree, "fieldset", { className: "__sl_root dsh-flat" });
+  assert.ok(textOf(view.rerender().tree).includes("人设卡"));
 });
