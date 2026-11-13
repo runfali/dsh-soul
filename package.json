@@ -1,6 +1,6 @@
 {
   "name": "dsh-soul",
-  "version": "0.1.0",
+  "version": "0.2.2-rc.1",
   "description": "给 DSH 加一个「灵魂」：在设置里写 Markdown 人设卡，按 会话 → 工作区 → 默认卡 解析后注入系统提示词；聊天标题栏和新会话页可给单个会话换卡；模型只读（persona_read）。只做人设，不含记忆。",
   "type": "module",
   "main": "index.js",
